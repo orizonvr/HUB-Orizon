@@ -1,0 +1,1 @@
+ALTER TABLE public.projetos ADD COLUMN ebitda_2025 numeric;
