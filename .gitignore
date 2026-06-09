@@ -21,7 +21,6 @@ dist-ssr
 .dev.vars
 
 # Secrets / variáveis de ambiente — NUNCA versionar
-.env
 .env.*
 !.env.example
 
