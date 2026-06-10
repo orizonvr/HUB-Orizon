@@ -528,3 +528,175 @@ export const realizarComite = createServerFn({ method: "POST" })
     if (uErr) throw new Error(uErr.message);
     return { ok: true as const };
   });
+
+// ---------- BRIEFING ----------
+const BRIEFING_PROJETO_COLS =
+  "nome, tipo, estagio, subcategoria, contraparte, setor, status_detalhado, descricao, tese, riscos, proximos_passos, notas_estrategicas, valor_transacao_mm, ebitda_2025, ebitda_alvo, multiplo_ev_ebitda, sinergias_estimadas, valor_estimado, tir_estimada, payback_anos, capex_estimado, receita_projetada_ano3, tam, volume_ton_dia, percentual_orizon";
+
+async function loadCamposProjeto(projetoId: string): Promise<BriefingCampos> {
+  const { data, error } = await supabaseAdmin
+    .from("projetos")
+    .select(BRIEFING_PROJETO_COLS)
+    .eq("id", projetoId)
+    .single();
+  if (error || !data) throw new Error("Projeto não encontrado.");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const p = data as any;
+  return {
+    nome: p.nome,
+    tipo: p.tipo,
+    estagio: p.estagio,
+    subcategoria: p.subcategoria,
+    contraparte: p.contraparte,
+    setor: p.setor,
+    status_detalhado: p.status_detalhado,
+    descricao: p.descricao,
+    tese: p.tese,
+    riscos: p.riscos,
+    proximos_passos: p.proximos_passos,
+    notas_estrategicas: p.notas_estrategicas,
+    valor_transacao_mm: p.valor_transacao_mm,
+    ebitda_2025: p.ebitda_2025,
+    ebitda_alvo: p.ebitda_alvo,
+    multiplo_ev_ebitda: p.multiplo_ev_ebitda,
+    sinergias_estimadas: p.sinergias_estimadas,
+    valor_estimado: p.valor_estimado,
+    tir_estimada: p.tir_estimada,
+    payback_anos: p.payback_anos,
+    capex_estimado: p.capex_estimado,
+    receita_projetada_ano3: p.receita_projetada_ano3,
+    tam: p.tam,
+    volume_ton_dia: p.volume_ton_dia,
+    percentual_orizon: p.percentual_orizon,
+  };
+}
+
+async function ensureBriefingPermission(
+  pautaId: string,
+  userId: string,
+  requirePreparacao: boolean,
+): Promise<{ comite_id: string; projeto_id: string }> {
+  const { data: pauta, error: pErr } = await supabaseAdmin
+    .from("comite_pauta")
+    .select("comite_id, projeto_id")
+    .eq("id", pautaId)
+    .single();
+  if (pErr || !pauta) throw new Error("Item da pauta não encontrado.");
+  const { data: comite, error: cErr } = await supabaseAdmin
+    .from("comites")
+    .select("status, criado_por_id")
+    .eq("id", pauta.comite_id)
+    .single();
+  if (cErr || !comite) throw new Error("Comitê não encontrado.");
+  if (requirePreparacao && comite.status !== "preparacao") {
+    throw new Error(
+      "Briefing só pode ser editado com o comitê em preparação.",
+    );
+  }
+  const { data: me } = await supabaseAdmin
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const role = (me as any)?.role;
+  const allowed =
+    role === "admin" || role === "lider" || comite.criado_por_id === userId;
+  if (!allowed) throw new Error("Sem permissão para editar o briefing.");
+  return { comite_id: pauta.comite_id, projeto_id: pauta.projeto_id };
+}
+
+export const getBriefingContext = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ pauta_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { data: pauta, error } = await supabaseAdmin
+      .from("comite_pauta")
+      .select("projeto_id, briefing_snapshot")
+      .eq("id", data.pauta_id)
+      .single();
+    if (error || !pauta) throw new Error("Item da pauta não encontrado.");
+    const campos_atuais = await loadCamposProjeto(pauta.projeto_id);
+    return {
+      projeto_nome: campos_atuais.nome,
+      campos_atuais,
+      briefing: (pauta.briefing_snapshot as BriefingSnapshot | null) ?? null,
+    };
+  });
+
+export const salvarBriefing = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        pauta_id: z.string().uuid(),
+        texto: z.string().max(20000),
+        origem: z.enum(["manual", "ia"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { projeto_id } = await ensureBriefingPermission(
+      data.pauta_id,
+      context.userId,
+      true,
+    );
+    const campos = await loadCamposProjeto(projeto_id);
+    const snapshot: BriefingSnapshot = {
+      texto: data.texto,
+      campos,
+      gerado_em: new Date().toISOString(),
+      gerado_por_id: context.userId,
+      origem: data.origem,
+    };
+    const { error } = await supabaseAdmin
+      .from("comite_pauta")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update({ briefing_snapshot: snapshot as any } as any)
+      .eq("id", data.pauta_id);
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+export const gerarBriefingIA = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ pauta_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { projeto_id } = await ensureBriefingPermission(
+      data.pauta_id,
+      context.userId,
+      true,
+    );
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) return { configured: false as const };
+    const campos = await loadCamposProjeto(projeto_id);
+    const resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6",
+        max_tokens: 1500,
+        system:
+          "Você é analista de M&A da Orizon. Escreva um briefing de comitê de investimento em português do Brasil, conciso (1 página), em markdown, com as seções: Resumo, Tese de investimento, Números-chave, Principais riscos, Próximos passos, e Recomendação/pedido ao comitê. Use apenas os dados fornecidos; não invente números. Se um dado faltar, escreva '—'.",
+        messages: [{ role: "user", content: JSON.stringify(campos) }],
+      }),
+    });
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      throw new Error(`Falha na geração com IA (${resp.status}): ${txt.slice(0, 200)}`);
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = (await resp.json()) as any;
+    const texto = (json.content ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((b: any) => b.type === "text")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((b: any) => b.text)
+      .join("\n")
+      .trim();
+    return { configured: true as const, texto };
+  });
