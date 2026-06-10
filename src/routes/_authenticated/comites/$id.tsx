@@ -613,6 +613,14 @@ function ComiteDetailPage() {
           setFollowupOpen(false);
         }}
       />
+
+      <BriefingDrawer
+        pautaId={briefingPautaId}
+        open={!!briefingPautaId}
+        onOpenChange={(o) => !o && setBriefingPautaId(null)}
+        readOnly={briefingReadOnly}
+        comiteId={id}
+      />
     </div>
   );
 }
