@@ -92,6 +92,7 @@ import { SUBCATEGORIAS, SUBCATEGORIA_LABEL } from "@/lib/projetos-types";
 import { ProjectSheet } from "@/components/ma/project-sheet";
 import { NewProjectDialog } from "@/components/ma/new-project-dialog";
 import { CompararTargets } from "@/components/projetos/comparar-targets";
+import { EditarEmMassa } from "@/components/projetos/editar-em-massa";
 import { TarefasWorkspaceView } from "@/components/tarefas/tarefas-workspace-view";
 import { useAuth } from "@/hooks/use-auth";
 import { ListTodo, FolderKanban } from "lucide-react";
