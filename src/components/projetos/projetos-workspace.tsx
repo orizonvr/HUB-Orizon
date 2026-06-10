@@ -136,6 +136,8 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
   const [showNew, setShowNew] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const qc = useQueryClient();
 
   const toggleCompare = (id: string) => {
     setCompareIds((prev) => {
