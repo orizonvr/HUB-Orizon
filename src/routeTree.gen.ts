@@ -21,6 +21,7 @@ import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedDocumentosRouteImport } from './routes/_authenticated/documentos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedComitesIndexRouteImport } from './routes/_authenticated/comites/index'
+import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos/$id'
 import { Route as AuthenticatedComitesIdRouteImport } from './routes/_authenticated/comites/$id'
 import { Route as ApiPublicHooksNotifyTarefasRouteImport } from './routes/api/public/hooks/notify-tarefas'
@@ -88,6 +89,11 @@ const AuthenticatedComitesIndexRoute =
     path: '/comites/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
+  id: '/api/public/bootstrap-admin',
+  path: '/api/public/bootstrap-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
   id: '/projetos/$id',
   path: '/projetos/$id',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/comites/$id': typeof AuthenticatedComitesIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/comites/': typeof AuthenticatedComitesIndexRoute
   '/api/public/hooks/notify-tarefas': typeof ApiPublicHooksNotifyTarefasRoute
 }
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/comites/$id': typeof AuthenticatedComitesIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/comites': typeof AuthenticatedComitesIndexRoute
   '/api/public/hooks/notify-tarefas': typeof ApiPublicHooksNotifyTarefasRoute
 }
@@ -152,6 +160,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/comites/$id': typeof AuthenticatedComitesIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
+  '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
   '/_authenticated/comites/': typeof AuthenticatedComitesIndexRoute
   '/api/public/hooks/notify-tarefas': typeof ApiPublicHooksNotifyTarefasRoute
 }
@@ -170,6 +179,7 @@ export interface FileRouteTypes {
     | '/tarefas'
     | '/comites/$id'
     | '/projetos/$id'
+    | '/api/public/bootstrap-admin'
     | '/comites/'
     | '/api/public/hooks/notify-tarefas'
   fileRoutesByTo: FileRoutesByTo
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/'
     | '/comites/$id'
     | '/projetos/$id'
+    | '/api/public/bootstrap-admin'
     | '/comites'
     | '/api/public/hooks/notify-tarefas'
   id:
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/comites/$id'
     | '/_authenticated/projetos/$id'
+    | '/api/public/bootstrap-admin'
     | '/_authenticated/comites/'
     | '/api/public/hooks/notify-tarefas'
   fileRoutesById: FileRoutesById
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AceitarConviteRoute: typeof AceitarConviteRoute
   LoginRoute: typeof LoginRoute
+  ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
   ApiPublicHooksNotifyTarefasRoute: typeof ApiPublicHooksNotifyTarefasRoute
 }
 
@@ -300,6 +313,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedComitesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/bootstrap-admin': {
+      id: '/api/public/bootstrap-admin'
+      path: '/api/public/bootstrap-admin'
+      fullPath: '/api/public/bootstrap-admin'
+      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/projetos/$id': {
       id: '/_authenticated/projetos/$id'
       path: '/projetos/$id'
@@ -360,6 +380,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AceitarConviteRoute: AceitarConviteRoute,
   LoginRoute: LoginRoute,
+  ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
   ApiPublicHooksNotifyTarefasRoute: ApiPublicHooksNotifyTarefasRoute,
 }
 export const routeTree = rootRouteImport
