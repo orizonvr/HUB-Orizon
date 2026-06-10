@@ -92,6 +92,7 @@ import { SUBCATEGORIAS, SUBCATEGORIA_LABEL } from "@/lib/projetos-types";
 import { ProjectSheet } from "@/components/ma/project-sheet";
 import { NewProjectDialog } from "@/components/ma/new-project-dialog";
 import { CompararTargets } from "@/components/projetos/comparar-targets";
+import { EditarEmMassa } from "@/components/projetos/editar-em-massa";
 import { TarefasWorkspaceView } from "@/components/tarefas/tarefas-workspace-view";
 import { useAuth } from "@/hooks/use-auth";
 import { ListTodo, FolderKanban } from "lucide-react";
@@ -135,6 +136,8 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
   const [showNew, setShowNew] = useState(false);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [showBulkEdit, setShowBulkEdit] = useState(false);
+  const qc = useQueryClient();
 
   const toggleCompare = (id: string) => {
     setCompareIds((prev) => {
@@ -478,6 +481,13 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
               >
                 Comparar
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowBulkEdit(true)}
+              >
+                Editar em massa
+              </Button>
               <Button size="sm" variant="ghost" onClick={clearCompare}>
                 Limpar
               </Button>
@@ -490,6 +500,17 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
           projetos={filtered.filter((p) => compareIds.includes(p.id))}
           profilesById={profileMap}
           config={config}
+        />
+        <EditarEmMassa
+          open={showBulkEdit}
+          onOpenChange={setShowBulkEdit}
+          ids={compareIds}
+          profiles={profiles}
+          config={config}
+          onApplied={() => {
+            qc.invalidateQueries({ queryKey: [config.queryKey] });
+            clearCompare();
+          }}
         />
         </>
         )}
