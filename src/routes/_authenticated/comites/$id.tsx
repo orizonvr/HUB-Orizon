@@ -301,6 +301,8 @@ function ComiteDetailPage() {
   const [concluirOpen, setConcluirOpen] = useState(false);
   const [ataDraft, setAtaDraft] = useState<string>("");
   const [followupOpen, setFollowupOpen] = useState(false);
+  const [briefingPautaId, setBriefingPautaId] = useState<string | null>(null);
+  const briefingReadOnly = comite?.status !== "preparacao" || !isPrivileged;
 
   if (detailQ.isLoading || !comite) {
     return (
