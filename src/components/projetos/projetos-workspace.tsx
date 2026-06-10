@@ -91,6 +91,7 @@ import {
 import { SUBCATEGORIAS, SUBCATEGORIA_LABEL } from "@/lib/projetos-types";
 import { ProjectSheet } from "@/components/ma/project-sheet";
 import { NewProjectDialog } from "@/components/ma/new-project-dialog";
+import { CompararTargets } from "@/components/projetos/comparar-targets";
 import { TarefasWorkspaceView } from "@/components/tarefas/tarefas-workspace-view";
 import { useAuth } from "@/hooks/use-auth";
 import { ListTodo, FolderKanban } from "lucide-react";
@@ -132,6 +133,20 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [initialSheetTab, setInitialSheetTab] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+
+  const toggleCompare = (id: string) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 4) {
+        toast.info("Compare no máximo 4 projetos por vez.");
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+  const clearCompare = () => setCompareIds([]);
 
   const { user } = useAuth();
   const [mainView, setMainView] = useState<"projetos" | "tarefas">(() => {
