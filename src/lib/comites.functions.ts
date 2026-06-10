@@ -23,6 +23,42 @@ export type ComiteParticipante = {
   avatar_url: string | null;
 };
 
+export type BriefingCampos = {
+  nome: string;
+  tipo: "ma" | "novos_negocios";
+  estagio: string;
+  subcategoria: string | null;
+  contraparte: string | null;
+  setor: string | null;
+  status_detalhado: string | null;
+  descricao: string | null;
+  tese: string | null;
+  riscos: string | null;
+  proximos_passos: string | null;
+  notas_estrategicas: string | null;
+  valor_transacao_mm: number | null;
+  ebitda_2025: number | null;
+  ebitda_alvo: number | null;
+  multiplo_ev_ebitda: number | null;
+  sinergias_estimadas: number | null;
+  valor_estimado: number | null;
+  tir_estimada: number | null;
+  payback_anos: number | null;
+  capex_estimado: number | null;
+  receita_projetada_ano3: number | null;
+  tam: number | null;
+  volume_ton_dia: number | null;
+  percentual_orizon: number | null;
+};
+
+export type BriefingSnapshot = {
+  texto: string;
+  campos: BriefingCampos;
+  gerado_em: string;
+  gerado_por_id: string;
+  origem: "manual" | "ia";
+};
+
 export type PautaItem = {
   id: string;
   comite_id: string;
@@ -40,6 +76,7 @@ export type PautaItem = {
   projeto_contraparte: string | null;
   projeto_valor_transacao_mm: number | null;
   projeto_ebitda_2025: number | null;
+  briefing_snapshot: BriefingSnapshot | null;
 };
 
 export type ComiteDetail = {
