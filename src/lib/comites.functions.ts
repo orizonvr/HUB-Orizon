@@ -232,6 +232,7 @@ export const getComiteDetail = createServerFn({ method: "POST" })
         projeto_contraparte: proj?.contraparte ?? null,
         projeto_valor_transacao_mm: proj?.valor_transacao_mm ?? null,
         projeto_ebitda_2025: proj?.ebitda_2025 ?? null,
+        briefing_snapshot: row.briefing_snapshot ?? null,
       };
     });
 
