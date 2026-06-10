@@ -1,0 +1,52 @@
+name: Deploy Azure — HUB-Orizon
+
+# Dispara a cada push na main (Lovable → GitHub → Azure) e manualmente.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-hub-orizon
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Usamos Bun (mesmo gerenciador do Lovable) para ler o mesmo bun.lock.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      # Sem --frozen-lockfile: tolera o lock ficar levemente fora de sync quando
+      # o Lovable atualiza dependências. (Endurecer p/ --frozen-lockfile depois.)
+      - name: Instalar dependências
+        run: bun install
+
+      - name: Build para Node (Azure)
+        run: bun run build:node
+        env:
+          # VITE_* são embutidas no bundle no momento do build (build-time).
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+
+      - name: Preparar pacote de deploy (somente o necessário)
+        # dist/server é standalone; a Azure só precisa de package.json + dist/.
+        run: |
+          mkdir -p deploy
+          cp -r dist deploy/dist
+          cp package.json deploy/package.json
+
+      - name: Deploy para Azure App Service
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: HUB-Orizon
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: deploy
