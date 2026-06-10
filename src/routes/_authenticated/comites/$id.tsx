@@ -676,6 +676,12 @@ function PautaViewItem({
               {DECISAO_LABEL[decisao]}
             </Badge>
           )}
+          {item.briefing_snapshot && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-primary">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+              Briefing pronto
+            </span>
+          )}
         </div>
 
         {!showDecisoes && (
