@@ -91,6 +91,7 @@ import {
 import { SUBCATEGORIAS, SUBCATEGORIA_LABEL } from "@/lib/projetos-types";
 import { ProjectSheet } from "@/components/ma/project-sheet";
 import { NewProjectDialog } from "@/components/ma/new-project-dialog";
+import { CompararTargets } from "@/components/projetos/comparar-targets";
 import { TarefasWorkspaceView } from "@/components/tarefas/tarefas-workspace-view";
 import { useAuth } from "@/hooks/use-auth";
 import { ListTodo, FolderKanban } from "lucide-react";
@@ -132,6 +133,20 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [initialSheetTab, setInitialSheetTab] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
+
+  const toggleCompare = (id: string) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 4) {
+        toast.info("Compare no máximo 4 projetos por vez.");
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+  const clearCompare = () => setCompareIds([]);
 
   const { user } = useAuth();
   const [mainView, setMainView] = useState<"projetos" | "tarefas">(() => {
@@ -436,6 +451,8 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
             projetos={filtered}
             profileMap={profileMap}
             onOpen={setOpenId}
+            selectedIds={compareIds}
+            onToggleSelect={toggleCompare}
           />
         )}
         {view === "cards" && filtered.length > 0 && (
@@ -444,8 +461,36 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
             projetos={filtered}
             profileMap={profileMap}
             onOpen={setOpenId}
+            selectedIds={compareIds}
+            onToggleSelect={toggleCompare}
           />
         )}
+        {compareIds.length >= 1 && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+            <Card className="px-4 py-2 flex items-center gap-3 shadow-lg border-border">
+              <span className="text-sm font-medium">
+                {compareIds.length} selecionado{compareIds.length > 1 ? "s" : ""}
+              </span>
+              <Button
+                size="sm"
+                disabled={compareIds.length < 2}
+                onClick={() => setShowCompare(true)}
+              >
+                Comparar
+              </Button>
+              <Button size="sm" variant="ghost" onClick={clearCompare}>
+                Limpar
+              </Button>
+            </Card>
+          </div>
+        )}
+        <CompararTargets
+          open={showCompare}
+          onOpenChange={setShowCompare}
+          projetos={filtered.filter((p) => compareIds.includes(p.id))}
+          profilesById={profileMap}
+          config={config}
+        />
         </>
         )}
 
@@ -711,16 +756,20 @@ function TableView({
   projetos,
   profileMap,
   onOpen,
+  selectedIds,
+  onToggleSelect,
 }: {
   config: ProjetoConfig;
   projetos: Projeto[];
   profileMap: Map<string, Profile>;
   onOpen: (id: string) => void;
+  selectedIds: string[];
+  onToggleSelect: (id: string) => void;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("data_fechamento_prevista");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const showMaCols = config.tipo === "ma";
   const [colVolume, setColVolume] = useState(true);
   const [colOrizon, setColOrizon] = useState(true);
@@ -817,7 +866,7 @@ function TableView({
       <div className="flex items-center justify-between p-3 border-b">
         <div className="text-sm text-muted-foreground">
           {sorted.length} projetos
-          {selected.size > 0 ? ` · ${selected.size} selecionado(s)` : ""}
+          {selectedSet.size > 0 ? ` · ${selectedSet.size} selecionado(s)` : ""}
         </div>
         <div className="flex items-center gap-2">
           {showMaCols && (
@@ -867,21 +916,8 @@ function TableView({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-10">
-              <Checkbox
-                checked={
-                  pageItems.length > 0 &&
-                  pageItems.every((p) => selected.has(p.id))
-                }
-                onCheckedChange={(c) => {
-                  const next = new Set(selected);
-                  pageItems.forEach((p) =>
-                    c ? next.add(p.id) : next.delete(p.id),
-                  );
-                  setSelected(next);
-                }}
-              />
-            </TableHead>
+            <TableHead className="w-8" />
+
             <SortHead k="nome" sk={sortKey} sd={sortDir} onSort={toggleSort}>
               Nome
             </SortHead>
@@ -963,14 +999,11 @@ function TableView({
                   onOpen(p.id);
                 }}
               >
-                <TableCell data-no-row>
+                <TableCell data-no-row onClick={(e) => e.stopPropagation()}>
                   <Checkbox
-                    checked={selected.has(p.id)}
-                    onCheckedChange={(c) => {
-                      const next = new Set(selected);
-                      c ? next.add(p.id) : next.delete(p.id);
-                      setSelected(next);
-                    }}
+                    checked={selectedSet.has(p.id)}
+                    onCheckedChange={() => onToggleSelect(p.id)}
+                    aria-label="Selecionar para comparar"
                   />
                 </TableCell>
                 <TableCell className="font-medium">{p.nome}</TableCell>
@@ -1142,11 +1175,15 @@ function CardsView({
   projetos,
   profileMap,
   onOpen,
+  selectedIds,
+  onToggleSelect,
 }: {
   config: ProjetoConfig;
   projetos: Projeto[];
   profileMap: Map<string, Profile>;
   onOpen: (id: string) => void;
+  selectedIds: string[];
+  onToggleSelect: (id: string) => void;
 }) {
   if (projetos.length === 0) {
     return (
@@ -1155,6 +1192,7 @@ function CardsView({
       </Card>
     );
   }
+  const selectedSet = new Set(selectedIds);
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
       {projetos.map((p) => {
@@ -1166,8 +1204,18 @@ function CardsView({
           <Card
             key={p.id}
             onClick={() => onOpen(p.id)}
-            className="p-4 cursor-pointer hover:shadow-md transition-shadow flex flex-col gap-3"
+            className="relative p-4 pt-9 cursor-pointer hover:shadow-md transition-shadow flex flex-col gap-3"
           >
+            <div
+              className="absolute top-2 right-2 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Checkbox
+                checked={selectedSet.has(p.id)}
+                onCheckedChange={() => onToggleSelect(p.id)}
+                aria-label="Selecionar para comparar"
+              />
+            </div>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-base truncate">

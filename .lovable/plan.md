@@ -1,58 +1,97 @@
-## Plano — Comitê: Briefing por projeto (snapshot congelado + IA-ready)
+## Comparação de targets lado a lado
 
-Escopo restrito ao Prompt C2. Não toca em migrations, fase de preparação ou realização, e não expõe a chave da Anthropic ao cliente.
+Adiciona seleção múltipla (2–4) de projetos nas views Tabela e Cards do `ProjetosWorkspace`, com barra flutuante e dialog de comparação por colunas. Tudo client-side, sem server function nem migration.
 
-### 1) Tipos e server functions — `src/lib/comites.functions.ts`
+### 1) `src/components/projetos/projetos-workspace.tsx`
 
-- Adicionar tipos exportados `BriefingCampos` e `BriefingSnapshot` (conforme spec).
-- Estender `PautaItem` com `briefing_snapshot: BriefingSnapshot | null` e mapeá-lo em `getComiteDetail` a partir de `row.briefing_snapshot` (o select `*` já traz o campo).
-- Nova fn `getBriefingContext({ pauta_id })` — `POST` + `requireSupabaseAuth`:
-  - Carrega item da pauta → `projeto_id` → projeto (todos os campos de `BriefingCampos`).
-  - Retorna `{ projeto_nome, campos_atuais, briefing }`.
-- Nova fn `salvarBriefing({ pauta_id, texto (max 20000), origem: "manual"|"ia" })` — `POST` + `requireSupabaseAuth`:
-  - Carrega pauta → comitê; exige `status === 'preparacao'` (senão throw).
-  - Checa permissão como em `realizarComite`: busca `profiles.role` do `context.userId`; permite admin/lider ou `criado_por_id === userId`.
-  - Lê campos atuais do projeto, monta `snapshot = { texto, campos, gerado_em, gerado_por_id, origem }`.
-  - `update comite_pauta set briefing_snapshot = snapshot where id = pauta_id`.
-- Nova fn `gerarBriefingIA({ pauta_id })` — `POST` + `requireSupabaseAuth`:
-  - Mesma checagem de permissão.
-  - Se `!process.env.ANTHROPIC_API_KEY` → `return { configured: false as const }`.
-  - Caso contrário, `fetch` para `https://api.anthropic.com/v1/messages` com headers `x-api-key` + `anthropic-version`, system prompt em pt-BR (Resumo, Tese, Números-chave, Riscos, Próximos passos, Recomendação), `model = process.env.ANTHROPIC_MODEL ?? "claude-sonnet-4-6"`, `max_tokens: 1500`, mensagem com `JSON.stringify(campos)`.
-  - Retorna `{ configured: true, texto }`. Não salva nada.
+**Estado de seleção (no componente raiz, para persistir entre views):**
+- `const [compareIds, setCompareIds] = useState<string[]>([])`
+- `const [showCompare, setShowCompare] = useState(false)`
+- `toggleCompare(id)`: se já está → remove; senão → se `length >= 4`, dispara `toast.info("Compare no máximo 4 projetos por vez.")` e retorna; senão adiciona.
+- `clearCompare()`: zera array.
 
-### 2) UI — `src/components/comites/briefing-drawer.tsx` (novo) + `src/routes/_authenticated/comites/$id.tsx`
+**Props nas views:**
+- Passar `selectedIds: compareIds` e `onToggleSelect: toggleCompare` para `TableView` e `CardsView`. `KanbanView` permanece intacta.
 
-- Novo componente `BriefingDrawer` usando `Sheet` (já existe em `@/components/ui/sheet`):
-  - Props: `pautaId`, `open`, `onOpenChange`, `readOnly` (default deriva de `status !== 'preparacao'`).
-  - Ao abrir, `useQuery(['briefing', pautaId], getBriefingContext)`.
-  - Campos: `Textarea` (min-h 320px) com o markdown; toda edição manual marca `origem = "manual"`.
-  - Botão "Gerar com IA": chama `gerarBriefingIA`. Se `configured: false` → `toast.info("Geração com IA ainda não disponível — aguardando liberação da chave da Anthropic pelo TI.")` e fica em modo manual. Se ok → preenche textarea + `origem = "ia"`.
-  - Painel lateral (read-only) com os números que serão congelados, usando `campos_atuais` (ou `briefing.campos` se já existe), formatados via `formatValorTransacaoMM`, `formatTonDia`, `formatPercentOrizon` de `@/lib/format`. Nota: "Estes números serão congelados ao salvar."
-  - Se já existe briefing: prefill `briefing.texto`, metadado `Gerado em {formatAbsolute(gerado_em)} · {origem}`, aviso "Salvar novamente recongela os números…".
-  - Salvar → `salvarBriefing`, toast, invalida `["comite", id]` e `["briefing", pautaId]`, fecha.
-  - `readOnly`: oculta botões "Salvar"/"Gerar com IA"; textarea fica `disabled`.
+**TableView:**
+- Nova coluna à esquerda, header vazio (`<TableHead className="w-8" />`), célula com `<Checkbox checked={selectedIds.includes(p.id)} onCheckedChange={() => onToggleSelect(p.id)} onClick={(e) => e.stopPropagation()} aria-label="Selecionar para comparar" />`.
+- Linha continua clicável para abrir o sheet; o `stopPropagation` no checkbox evita disparar `onOpen`.
 
-- Em `comites/$id.tsx`:
-  - Cada item da pauta ganha botão "Briefing" (ícone `FileText`) que abre o drawer.
-  - Indicador discreto (ponto verde + texto "Briefing pronto") quando `item.briefing_snapshot != null`.
-  - No modo registro e no estado realizado, link "Ver briefing" abrindo o mesmo drawer em `readOnly`.
-  - Estado local: `briefingPautaId: string | null` + `briefingReadOnly: boolean`.
+**CardsView:**
+- Checkbox absoluto no canto superior direito do card (`absolute top-2 right-2`), com `onClick={(e) => e.stopPropagation()}`. Card continua com onClick para abrir o sheet; ajustar `position: relative` no card raiz se necessário.
 
-### 3) Env — `.env.example`
+**Barra flutuante (renderizada dentro do `mainView === "projetos"`, fora das views):**
+- Aparece quando `compareIds.length >= 1`.
+- `<div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">` envolvendo um `<Card className="px-4 py-2 flex items-center gap-3 shadow-lg border-border">`:
+  - `<span className="text-sm">{n} selecionado(s)</span>`
+  - `<Button size="sm" disabled={compareIds.length < 2} onClick={() => setShowCompare(true)}>Comparar</Button>`
+  - `<Button size="sm" variant="ghost" onClick={clearCompare}>Limpar</Button>`
 
-Adicionar (com comentário server-side only):
-
+**Dialog:**
+```tsx
+<CompararTargets
+  open={showCompare}
+  onOpenChange={setShowCompare}
+  projetos={filtered.filter((p) => compareIds.includes(p.id))}
+  profilesById={profileMap}
+  config={config}
+/>
 ```
-# IA (Anthropic) — geração de briefing do comitê. SERVIDOR APENAS.
-ANTHROPIC_API_KEY="sk-ant-..."
-ANTHROPIC_MODEL="claude-sonnet-4-6"
+Fechar o dialog NÃO limpa `compareIds`.
+
+### 2) `src/components/projetos/comparar-targets.tsx` (novo)
+
+```tsx
+type Props = {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  projetos: Projeto[];
+  profilesById: Map<string, { nome_completo: string } | Profile>;
+  config: ProjetoConfig;
+};
 ```
 
-### Garantias
+**Layout:**
+- `<Dialog>` / `<DialogContent className="max-w-[min(95vw,1100px)] max-h-[90vh] overflow-hidden flex flex-col">`.
+- `<DialogHeader>` com título "Comparar targets" + descrição "{n} projetos lado a lado".
+- Corpo: `<div className="overflow-auto">` com uma `<table>` semântica (não o `Table` shadcn — precisamos da primeira coluna fixa com `sticky left-0 bg-background`).
+- Colunas:
+  - Coluna 1 (sticky): rótulo da métrica, classes `sticky left-0 bg-background font-medium text-xs text-muted-foreground w-44`.
+  - Demais colunas: uma por projeto. Header = `<div>` com `nome` (font-medium) + `<Badge variant="secondary">{config.estagioLabels[p.estagio]}</Badge>`.
+- Linhas agrupadas por seções via `<tr>` de cabeçalho com `colSpan` cobrindo tudo (`bg-muted/40 text-xs uppercase tracking-wide`).
 
-- Sem migration: `comite_pauta.briefing_snapshot` jsonb já existe.
-- Chave Anthropic só é lida dentro de `.handler()` da server fn; nunca `VITE_`, nunca no browser.
-- Sem alteração na fase de preparação/realização além dos dois ganchos de UI ("Briefing" e "Ver briefing").
-- Degradação elegante quando a chave falta.
-- Snapshot congela na hora do save; edições futuras no projeto não afetam o briefing salvo.
-- Edição bloqueada no servidor quando `status !== 'preparacao'` e para quem não é admin/lider/criador.
+**Seções e linhas:**
+
+Helper `cell(value)` → retorna `value || "—"`.
+
+- **Identidade** (sempre)
+  - Contraparte → `p.contraparte`
+  - Setor → `p.setor`
+  - Subcategoria → SÓ se `config.tipo === "novos_negocios"` (usar `SUBCATEGORIA_LABEL[p.subcategoria]` se existir; senão "—")
+  - Status → `STATUS_LABEL[p.status]`
+  - Saúde → `<span className="inline-flex items-center gap-2"><span className={cn("h-2 w-2 rounded-full", HEALTH_BG[healthFor(p)])} />{HEALTH_LABEL[healthFor(p)]}</span>`
+  - Responsável → `profilesById.get(p.responsavel_id)?.nome_completo ?? "—"`
+  - % Orizon → `formatPercentOrizon(p.percentual_orizon)`
+
+- **Financeiro** (varia por `config.finVariant`)
+  - `ma`: Valor da transação `formatValorTransacaoMM(p.valor_transacao_mm)`, Valor estimado `formatBRLFull(p.valor_estimado)`, EBITDA 2025 `formatBRLFull(p.ebitda_2025)`, EBITDA alvo `formatBRLFull(p.ebitda_alvo)`, Múltiplo EV/EBITDA `formatExtra(p.multiplo_ev_ebitda, "multiple")`, Sinergias estimadas `formatBRLFull(p.sinergias_estimadas)`, Volume `formatTonDia(p.volume_ton_dia)`.
+  - `nn`: Investimento estimado `formatBRLFull(p.valor_estimado)`, Capex estimado `formatBRLFull(p.capex_estimado)`, TIR estimada `formatExtra(p.tir_estimada, "percent")`, Payback `formatExtra(p.payback_anos, "years")`, Receita projetada ano 3 `formatBRLFull(p.receita_projetada_ano3)`, TAM `formatBRLFull(p.tam)`, Volume `formatTonDia(p.volume_ton_dia)`.
+  - Numéricos null → as próprias helpers já retornam "—".
+
+- **Prazos** (sempre): Início `formatAbsolute(p.data_inicio)`, Fechamento previsto `formatAbsolute(p.data_fechamento_prevista)`.
+
+- **Narrativa** (sempre, no fim): Tese, Riscos, Próximos passos — célula com `<div className="whitespace-pre-wrap text-xs">{p.tese || "—"}</div>` etc.
+
+**Imports:** Dialog, Card, Button, Checkbox, Badge de `@/components/ui/*`; `formatBRLFull, MA_ESTAGIO_LABEL (não usado — usar config.estagioLabels), healthFor, HEALTH_BG, HEALTH_LABEL, STATUS_LABEL` de `@/lib/ma-utils`; `formatValorTransacaoMM, formatTonDia, formatPercentOrizon, formatAbsolute` de `@/lib/format`; `formatExtra, ProjetoConfig` de `@/lib/projetos-config`; `SUBCATEGORIA_LABEL` de `@/lib/projetos-types`; `cn` de `@/lib/utils`.
+
+### Fora de escopo
+- Sem alterações em filtros, ProjectSheet, KanbanView, NewProjectDialog, tarefas, server functions ou migrations.
+- Sem novos formatters/labels — reutiliza os existentes.
+
+### Validação manual
+- Marcar 2–4 em Tabela e Cards; tentar 5º → toast e não adiciona.
+- Clique no checkbox não abre o sheet.
+- Barra flutuante aparece com ≥1, "Comparar" só habilita com ≥2.
+- Dialog mostra métricas corretas por tipo, BR-formatado, "—" para nulos.
+- Trocar de view preserva seleção. "Limpar" zera. Fechar dialog mantém seleção.
+- M&A, Novos Negócios, e Tarefas continuam funcionando.
