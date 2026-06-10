@@ -9,10 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { getProjetoDetail } from "@/lib/projetos.functions";
-import {
-  listTarefasByProjeto,
-  PRIORIDADE_LABEL,
-} from "@/lib/tarefas.functions";
+import { listTarefasByProjeto } from "@/lib/tarefas.functions";
+import { PRIORIDADE_LABEL } from "@/lib/tarefas-types";
 import {
   getDecisoesComiteByProjeto,
   type DecisaoComite,
