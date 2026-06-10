@@ -30,7 +30,7 @@ documentos e notificações — com dashboard consolidado para a diretoria.
 | Build | Vite (via `@lovable.dev/vite-tanstack-config`, que embute o **Nitro**) |
 | Hospedagem | **Azure App Service** (Linux, **Node 22**) |
 | CI/CD | GitHub Actions (build + deploy automáticos) |
-| Gerenciador de pacotes | **Bun** (lockfile `bun.lock`) |
+| Gerenciador de pacotes | **npm** no CI e dev local; **Bun** (`bun.lock`) no Lovable |
 
 ## Modelo de build — o "interruptor" `BUILD_TARGET`
 
@@ -47,7 +47,7 @@ ambiente `BUILD_TARGET` (ver [`vite.config.ts`](vite.config.ts)):
 
 ## O que é preciso para funcionar
 
-1. **Node 22 LTS** (requisito do Vite 7) e **Bun** para instalar dependências.
+1. **Node 22 LTS** (requisito do Vite 7). Dependências via **npm** (CI/local) ou **bun** (Lovable).
 2. Um projeto **Supabase** com o schema aplicado (ver
    [`supabase/migrations/`](supabase/migrations) ou o script consolidado em `SQL/`).
 3. As **variáveis de ambiente** abaixo.
@@ -76,13 +76,13 @@ ambiente `BUILD_TARGET` (ver [`vite.config.ts`](vite.config.ts)):
 ## Rodar localmente
 
 ```bash
-bun install
+npm install
 
 # Desenvolvimento (hot reload) — http://localhost:8080
-bun run dev
+npm run dev
 
 # Build de produção igual ao da Azure (Node) — gera dist/server/index.mjs
-bun run build:node
+npm run build:node
 node --env-file=.env dist/server/index.mjs   # sobe em http://localhost:3000
 ```
 
@@ -103,8 +103,8 @@ docs/                      # documentação (ver ARQUITETURA-E-DEPLOY.md)
 ## Deploy
 
 A publicação é **automática**: cada `push` na branch `main` dispara o workflow
-[`deploy-homol.yml`](.github/workflows/deploy-homol.yml), que builda no modo Node
-e publica no Azure App Service.
+[`deploy.yml`](.github/workflows/deploy.yml), que builda no modo Node (com npm)
+e publica no Azure App Service **`HUB-Orizon`**.
 
 📘 **Detalhes completos da arquitetura e da configuração** (Azure, Supabase,
 secrets, passo a passo para recriar o ambiente) em
