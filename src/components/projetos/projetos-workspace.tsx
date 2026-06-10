@@ -756,16 +756,20 @@ function TableView({
   projetos,
   profileMap,
   onOpen,
+  selectedIds,
+  onToggleSelect,
 }: {
   config: ProjetoConfig;
   projetos: Projeto[];
   profileMap: Map<string, Profile>;
   onOpen: (id: string) => void;
+  selectedIds: string[];
+  onToggleSelect: (id: string) => void;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("data_fechamento_prevista");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const showMaCols = config.tipo === "ma";
   const [colVolume, setColVolume] = useState(true);
   const [colOrizon, setColOrizon] = useState(true);
