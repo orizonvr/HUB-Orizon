@@ -512,13 +512,6 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
             clearCompare();
           }}
         />
-        <CompararTargets
-          open={showCompare}
-          onOpenChange={setShowCompare}
-          projetos={filtered.filter((p) => compareIds.includes(p.id))}
-          profilesById={profileMap}
-          config={config}
-        />
         </>
         )}
 
