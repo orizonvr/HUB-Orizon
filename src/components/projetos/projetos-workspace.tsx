@@ -451,6 +451,8 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
             projetos={filtered}
             profileMap={profileMap}
             onOpen={setOpenId}
+            selectedIds={compareIds}
+            onToggleSelect={toggleCompare}
           />
         )}
         {view === "cards" && filtered.length > 0 && (
@@ -459,8 +461,36 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
             projetos={filtered}
             profileMap={profileMap}
             onOpen={setOpenId}
+            selectedIds={compareIds}
+            onToggleSelect={toggleCompare}
           />
         )}
+        {compareIds.length >= 1 && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
+            <Card className="px-4 py-2 flex items-center gap-3 shadow-lg border-border">
+              <span className="text-sm font-medium">
+                {compareIds.length} selecionado{compareIds.length > 1 ? "s" : ""}
+              </span>
+              <Button
+                size="sm"
+                disabled={compareIds.length < 2}
+                onClick={() => setShowCompare(true)}
+              >
+                Comparar
+              </Button>
+              <Button size="sm" variant="ghost" onClick={clearCompare}>
+                Limpar
+              </Button>
+            </Card>
+          </div>
+        )}
+        <CompararTargets
+          open={showCompare}
+          onOpenChange={setShowCompare}
+          projetos={filtered.filter((p) => compareIds.includes(p.id))}
+          profilesById={profileMap}
+          config={config}
+        />
         </>
         )}
 
