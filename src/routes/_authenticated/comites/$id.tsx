@@ -12,6 +12,7 @@ import {
   Copy,
   Download,
   ClipboardList,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
