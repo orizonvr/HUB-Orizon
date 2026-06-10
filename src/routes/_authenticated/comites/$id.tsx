@@ -736,6 +736,15 @@ function PautaViewItem({
           </div>
         )}
       </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        onClick={onBriefing}
+        title="Briefing"
+      >
+        <FileText className="h-4 w-4" />
+      </Button>
       {canEdit && (
         <Button
           variant="ghost"
