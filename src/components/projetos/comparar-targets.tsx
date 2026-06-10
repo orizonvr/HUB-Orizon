@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import {
   Dialog,
   DialogContent,
@@ -194,8 +195,8 @@ export function CompararTargets({
             </thead>
             <tbody>
               {sections.map((section) => (
-                <>
-                  <tr key={`${section.title}-header`} className="bg-muted/40">
+                <Fragment key={section.title}>
+                  <tr className="bg-muted/40">
                     <td
                       colSpan={totalCols}
                       className="px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
@@ -226,7 +227,7 @@ export function CompararTargets({
                       ))}
                     </tr>
                   ))}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
