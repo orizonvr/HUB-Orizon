@@ -20,20 +20,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Usamos Bun (mesmo gerenciador do Lovable) para ler o mesmo bun.lock.
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      # Usamos npm (mesmo ambiente validado localmente, que gera dist/server
+      # corretamente). O `bun install` lê o bun.lock e pode resolver versões
+      # diferentes do plugin, mudando o comportamento do build.
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
-      # Sem --frozen-lockfile: tolera o lock ficar levemente fora de sync quando
-      # o Lovable atualiza dependências. (Endurecer p/ --frozen-lockfile depois.)
       - name: Instalar dependências
-        run: bun install
+        run: npm install --no-audit --no-fund
 
       - name: Build para Node (Azure)
-        # BUILD_TARGET=node é setado direto no ambiente do step (NÃO dependemos do
-        # cross-env, que pode não propagar a env quando rodado via bun). Por isso
-        # usamos o script `build` (vite build puro) com a env já definida aqui.
-        run: bun run build
+        # BUILD_TARGET=node setado direto no ambiente do step. Usamos o script
+        # `build` (vite build puro) com a env já definida aqui.
+        run: npm run build
         env:
           BUILD_TARGET: node
           # VITE_* são embutidas no bundle no momento do build (build-time).
