@@ -66,6 +66,7 @@ import {
   type ComiteStatus,
   type PautaItem,
 } from "@/lib/comites.functions";
+import { BriefingDrawer } from "@/components/comites/briefing-drawer";
 import { listAllProjetosLite, createTarefasBatch } from "@/lib/tarefas.functions";
 import { listProfiles } from "@/lib/projetos.functions";
 import { MA_CONFIG, NN_CONFIG } from "@/lib/projetos-config";
