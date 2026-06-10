@@ -771,9 +771,10 @@ type RegistroProps = {
     condicionantes?: string | null;
     estagio_sugerido?: string | null;
   }) => void;
+  onBriefing: () => void;
 };
 
-function PautaRegistroItem({ idx, item, pending, onPatch }: RegistroProps) {
+function PautaRegistroItem({ idx, item, pending, onPatch, onBriefing }: RegistroProps) {
   const initialDecisao = (item.decisao as DecisaoKey) ?? "pendente";
   const [decisao, setDecisao] = useState<DecisaoKey>(initialDecisao);
   const [justificativa, setJustificativa] = useState(item.justificativa ?? "");
@@ -805,6 +806,14 @@ function PautaRegistroItem({ idx, item, pending, onPatch }: RegistroProps) {
             <Badge variant="secondary" className="text-[10px]">
               {item.projeto_estagio}
             </Badge>
+            <button
+              type="button"
+              onClick={onBriefing}
+              className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              <FileText className="h-3 w-3" />
+              {item.briefing_snapshot ? "Ver briefing" : "Briefing"}
+            </button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
