@@ -12,6 +12,7 @@ import {
   Copy,
   Download,
   ClipboardList,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ import {
   type ComiteStatus,
   type PautaItem,
 } from "@/lib/comites.functions";
+import { BriefingDrawer } from "@/components/comites/briefing-drawer";
 import { listAllProjetosLite, createTarefasBatch } from "@/lib/tarefas.functions";
 import { listProfiles } from "@/lib/projetos.functions";
 import { MA_CONFIG, NN_CONFIG } from "@/lib/projetos-config";
@@ -299,6 +301,8 @@ function ComiteDetailPage() {
   const [concluirOpen, setConcluirOpen] = useState(false);
   const [ataDraft, setAtaDraft] = useState<string>("");
   const [followupOpen, setFollowupOpen] = useState(false);
+  const [briefingPautaId, setBriefingPautaId] = useState<string | null>(null);
+  const briefingReadOnly = comite?.status !== "preparacao" || !isPrivileged;
 
   if (detailQ.isLoading || !comite) {
     return (
@@ -465,6 +469,7 @@ function ComiteDetailPage() {
                 item={item}
                 pending={pautaItemM.isPending}
                 onPatch={(patch) => pautaItemM.mutate({ id: item.id, ...patch })}
+                onBriefing={() => setBriefingPautaId(item.id)}
               />
             ))}
           </ul>
@@ -483,6 +488,7 @@ function ComiteDetailPage() {
                   pautaItemM.mutate({ id: item.id, relator_id })
                 }
                 onRemove={() => removeM.mutate(item.id)}
+                onBriefing={() => setBriefingPautaId(item.id)}
               />
             ))}
           </ul>
@@ -607,6 +613,14 @@ function ComiteDetailPage() {
           setFollowupOpen(false);
         }}
       />
+
+      <BriefingDrawer
+        pautaId={briefingPautaId}
+        open={!!briefingPautaId}
+        onOpenChange={(o) => !o && setBriefingPautaId(null)}
+        readOnly={briefingReadOnly}
+        comiteId={id}
+      />
     </div>
   );
 }
@@ -621,6 +635,7 @@ type PautaViewProps = {
   removing: boolean;
   onRelator: (id: string | null) => void;
   onRemove: () => void;
+  onBriefing: () => void;
 };
 
 function PautaViewItem({
@@ -632,6 +647,7 @@ function PautaViewItem({
   removing,
   onRelator,
   onRemove,
+  onBriefing,
 }: PautaViewProps) {
   const decisao = (item.decisao as DecisaoKey) ?? "pendente";
   const estagioLabel = item.estagio_sugerido
@@ -659,6 +675,12 @@ function PautaViewItem({
             >
               {DECISAO_LABEL[decisao]}
             </Badge>
+          )}
+          {item.briefing_snapshot && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-primary">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary" />
+              Briefing pronto
+            </span>
           )}
         </div>
 
@@ -714,6 +736,15 @@ function PautaViewItem({
           </div>
         )}
       </div>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+        onClick={onBriefing}
+        title="Briefing"
+      >
+        <FileText className="h-4 w-4" />
+      </Button>
       {canEdit && (
         <Button
           variant="ghost"
@@ -740,9 +771,10 @@ type RegistroProps = {
     condicionantes?: string | null;
     estagio_sugerido?: string | null;
   }) => void;
+  onBriefing: () => void;
 };
 
-function PautaRegistroItem({ idx, item, pending, onPatch }: RegistroProps) {
+function PautaRegistroItem({ idx, item, pending, onPatch, onBriefing }: RegistroProps) {
   const initialDecisao = (item.decisao as DecisaoKey) ?? "pendente";
   const [decisao, setDecisao] = useState<DecisaoKey>(initialDecisao);
   const [justificativa, setJustificativa] = useState(item.justificativa ?? "");
@@ -774,6 +806,14 @@ function PautaRegistroItem({ idx, item, pending, onPatch }: RegistroProps) {
             <Badge variant="secondary" className="text-[10px]">
               {item.projeto_estagio}
             </Badge>
+            <button
+              type="button"
+              onClick={onBriefing}
+              className="ml-auto inline-flex items-center gap-1 text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            >
+              <FileText className="h-3 w-3" />
+              {item.briefing_snapshot ? "Ver briefing" : "Briefing"}
+            </button>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
