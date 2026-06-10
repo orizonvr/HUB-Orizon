@@ -481,12 +481,37 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
               >
                 Comparar
               </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowBulkEdit(true)}
+              >
+                Editar em massa
+              </Button>
               <Button size="sm" variant="ghost" onClick={clearCompare}>
                 Limpar
               </Button>
             </Card>
           </div>
         )}
+        <CompararTargets
+          open={showCompare}
+          onOpenChange={setShowCompare}
+          projetos={filtered.filter((p) => compareIds.includes(p.id))}
+          profilesById={profileMap}
+          config={config}
+        />
+        <EditarEmMassa
+          open={showBulkEdit}
+          onOpenChange={setShowBulkEdit}
+          ids={compareIds}
+          profiles={profiles}
+          config={config}
+          onApplied={() => {
+            qc.invalidateQueries({ queryKey: [config.queryKey] });
+            clearCompare();
+          }}
+        />
         <CompararTargets
           open={showCompare}
           onOpenChange={setShowCompare}
