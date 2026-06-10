@@ -37,16 +37,25 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
 
-      - name: Preparar pacote de deploy (somente o necessário)
+      - name: Verificar build e empacotar (zip)
         # dist/server é standalone; a Azure só precisa de package.json + dist/.
+        # Falha cedo e com mensagem clara se o build não gerou o entry esperado.
         run: |
+          if [ ! -f dist/server/index.mjs ]; then
+            echo "::error::dist/server/index.mjs NAO foi gerado pelo build."
+            echo "--- dist/ ---"; ls -R dist 2>/dev/null || echo "(dist nao existe)"
+            echo "--- .output/ ---"; ls -R .output 2>/dev/null || echo "(.output nao existe)"
+            exit 1
+          fi
           mkdir -p deploy
           cp -r dist deploy/dist
           cp package.json deploy/package.json
+          (cd deploy && zip -r ../app.zip . >/dev/null)
+          echo "--- conteudo do app.zip ---"; unzip -l app.zip | head -20
 
       - name: Deploy para Azure App Service
         uses: azure/webapps-deploy@v3
         with:
           app-name: HUB-Orizon
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: deploy
+          package: app.zip

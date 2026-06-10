@@ -37,7 +37,13 @@ export default defineConfig({
   ...(isNodeBuild
     ? {
         // Build para Azure (Node): Nitro com preset node-server.
-        nitro: { preset: "node-server" },
+        // Output FIXADO em dist/ — sem isso, a versão do plugin Lovable muda o
+        // diretório padrão (v1.8 = dist/server, v2.3 = .output/server), quebrando
+        // o `npm start` (que roda `node dist/server/index.mjs`) e o deploy.
+        nitro: {
+          preset: "node-server",
+          output: { dir: "dist", serverDir: "dist/server", publicDir: "dist/client" },
+        },
       }
     : {}),
 });
