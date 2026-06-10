@@ -150,6 +150,7 @@ function SheetBody({
   const { projeto, comentarios, documentos, atividades } = data;
   const deleteFn = useServerFn(deleteProjeto);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <>
