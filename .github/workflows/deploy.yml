@@ -30,8 +30,12 @@ jobs:
         run: bun install
 
       - name: Build para Node (Azure)
-        run: bun run build:node
+        # BUILD_TARGET=node é setado direto no ambiente do step (NÃO dependemos do
+        # cross-env, que pode não propagar a env quando rodado via bun). Por isso
+        # usamos o script `build` (vite build puro) com a env já definida aqui.
+        run: bun run build
         env:
+          BUILD_TARGET: node
           # VITE_* são embutidas no bundle no momento do build (build-time).
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
