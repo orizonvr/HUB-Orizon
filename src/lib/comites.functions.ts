@@ -700,3 +700,47 @@ export const gerarBriefingIA = createServerFn({ method: "POST" })
       .trim();
     return { configured: true as const, texto };
   });
+
+// ---------- DECISÕES POR PROJETO (read-only) ----------
+export type DecisaoComite = {
+  comite_id: string;
+  comite_titulo: string;
+  comite_data: string;
+  decisao: string | null;
+  justificativa: string | null;
+  condicionantes: string | null;
+  estagio_sugerido: string | null;
+};
+
+export const getDecisoesComiteByProjeto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ projeto_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { data: rows, error } = await supabaseAdmin
+      .from("comite_pauta")
+      .select(
+        "decisao, justificativa, condicionantes, estagio_sugerido, comites!inner(id, titulo, data, status)",
+      )
+      .eq("projeto_id", data.projeto_id)
+      .eq("comites.status", "realizado");
+    if (error) throw new Error(error.message);
+    type Row = {
+      decisao: string | null;
+      justificativa: string | null;
+      condicionantes: string | null;
+      estagio_sugerido: string | null;
+      comites: { id: string; titulo: string; data: string; status: string };
+    };
+    const decisoes: DecisaoComite[] = ((rows ?? []) as unknown as Row[])
+      .map((r) => ({
+        comite_id: r.comites.id,
+        comite_titulo: r.comites.titulo,
+        comite_data: r.comites.data,
+        decisao: r.decisao,
+        justificativa: r.justificativa,
+        condicionantes: r.condicionantes,
+        estagio_sugerido: r.estagio_sugerido,
+      }))
+      .sort((a, b) => (a.comite_data < b.comite_data ? 1 : -1));
+    return { decisoes };
+  });
