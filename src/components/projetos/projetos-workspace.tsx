@@ -1175,11 +1175,15 @@ function CardsView({
   projetos,
   profileMap,
   onOpen,
+  selectedIds,
+  onToggleSelect,
 }: {
   config: ProjetoConfig;
   projetos: Projeto[];
   profileMap: Map<string, Profile>;
   onOpen: (id: string) => void;
+  selectedIds: string[];
+  onToggleSelect: (id: string) => void;
 }) {
   if (projetos.length === 0) {
     return (
@@ -1188,6 +1192,7 @@ function CardsView({
       </Card>
     );
   }
+  const selectedSet = new Set(selectedIds);
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
       {projetos.map((p) => {
@@ -1199,8 +1204,18 @@ function CardsView({
           <Card
             key={p.id}
             onClick={() => onOpen(p.id)}
-            className="p-4 cursor-pointer hover:shadow-md transition-shadow flex flex-col gap-3"
+            className="relative p-4 pt-9 cursor-pointer hover:shadow-md transition-shadow flex flex-col gap-3"
           >
+            <div
+              className="absolute top-2 right-2 z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Checkbox
+                checked={selectedSet.has(p.id)}
+                onCheckedChange={() => onToggleSelect(p.id)}
+                aria-label="Selecionar para comparar"
+              />
+            </div>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-base truncate">
