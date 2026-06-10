@@ -469,6 +469,7 @@ function ComiteDetailPage() {
                 item={item}
                 pending={pautaItemM.isPending}
                 onPatch={(patch) => pautaItemM.mutate({ id: item.id, ...patch })}
+                onBriefing={() => setBriefingPautaId(item.id)}
               />
             ))}
           </ul>
@@ -487,6 +488,7 @@ function ComiteDetailPage() {
                   pautaItemM.mutate({ id: item.id, relator_id })
                 }
                 onRemove={() => removeM.mutate(item.id)}
+                onBriefing={() => setBriefingPautaId(item.id)}
               />
             ))}
           </ul>
