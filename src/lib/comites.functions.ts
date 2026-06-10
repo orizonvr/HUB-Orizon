@@ -166,6 +166,7 @@ export const getComiteDetail = createServerFn({ method: "POST" })
       justificativa: string | null;
       condicionantes: string | null;
       estagio_sugerido: string | null;
+      briefing_snapshot: BriefingSnapshot | null;
     }>;
 
     const projIds = Array.from(new Set(pautaRaw.map((p) => p.projeto_id)));
