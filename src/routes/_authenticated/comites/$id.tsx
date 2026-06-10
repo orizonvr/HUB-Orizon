@@ -635,6 +635,7 @@ type PautaViewProps = {
   removing: boolean;
   onRelator: (id: string | null) => void;
   onRemove: () => void;
+  onBriefing: () => void;
 };
 
 function PautaViewItem({
@@ -646,6 +647,7 @@ function PautaViewItem({
   removing,
   onRelator,
   onRemove,
+  onBriefing,
 }: PautaViewProps) {
   const decisao = (item.decisao as DecisaoKey) ?? "pendente";
   const estagioLabel = item.estagio_sugerido
