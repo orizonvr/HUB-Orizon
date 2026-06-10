@@ -999,14 +999,11 @@ function TableView({
                   onOpen(p.id);
                 }}
               >
-                <TableCell data-no-row>
+                <TableCell data-no-row onClick={(e) => e.stopPropagation()}>
                   <Checkbox
-                    checked={selected.has(p.id)}
-                    onCheckedChange={(c) => {
-                      const next = new Set(selected);
-                      c ? next.add(p.id) : next.delete(p.id);
-                      setSelected(next);
-                    }}
+                    checked={selectedSet.has(p.id)}
+                    onCheckedChange={() => onToggleSelect(p.id)}
+                    aria-label="Selecionar para comparar"
                   />
                 </TableCell>
                 <TableCell className="font-medium">{p.nome}</TableCell>
