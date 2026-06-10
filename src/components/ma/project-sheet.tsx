@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -149,6 +150,7 @@ function SheetBody({
   const { projeto, comentarios, documentos, atividades } = data;
   const deleteFn = useServerFn(deleteProjeto);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <>
@@ -167,6 +169,15 @@ function SheetBody({
               onSave={(v) => save({ contraparte: v })}
             />
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              navigate({ to: "/projetos/$id", params: { id: projeto.id } })
+            }
+          >
+            Abrir dossiê
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
