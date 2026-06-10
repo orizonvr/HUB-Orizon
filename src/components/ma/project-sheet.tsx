@@ -169,6 +169,15 @@ function SheetBody({
               onSave={(v) => save({ contraparte: v })}
             />
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              navigate({ to: "/projetos/$id", params: { id: projeto.id } })
+            }
+          >
+            Abrir dossiê
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
