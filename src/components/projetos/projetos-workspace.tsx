@@ -866,7 +866,7 @@ function TableView({
       <div className="flex items-center justify-between p-3 border-b">
         <div className="text-sm text-muted-foreground">
           {sorted.length} projetos
-          {selected.size > 0 ? ` · ${selected.size} selecionado(s)` : ""}
+          {selectedSet.size > 0 ? ` · ${selectedSet.size} selecionado(s)` : ""}
         </div>
         <div className="flex items-center gap-2">
           {showMaCols && (
@@ -916,21 +916,8 @@ function TableView({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-10">
-              <Checkbox
-                checked={
-                  pageItems.length > 0 &&
-                  pageItems.every((p) => selected.has(p.id))
-                }
-                onCheckedChange={(c) => {
-                  const next = new Set(selected);
-                  pageItems.forEach((p) =>
-                    c ? next.add(p.id) : next.delete(p.id),
-                  );
-                  setSelected(next);
-                }}
-              />
-            </TableHead>
+            <TableHead className="w-8" />
+
             <SortHead k="nome" sk={sortKey} sd={sortDir} onSort={toggleSort}>
               Nome
             </SortHead>
