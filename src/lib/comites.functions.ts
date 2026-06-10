@@ -393,12 +393,29 @@ export const updatePautaItem = createServerFn({ method: "POST" })
       .object({
         id: z.string().uuid(),
         relator_id: z.string().uuid().nullable().optional(),
+        decisao: z
+          .enum([
+            "aprovado",
+            "aprovado_com_ressalvas",
+            "reprovado",
+            "adiado",
+            "pendente",
+          ])
+          .optional(),
+        justificativa: z.string().max(4000).nullable().optional(),
+        condicionantes: z.string().max(4000).nullable().optional(),
+        estagio_sugerido: z.string().max(120).nullable().optional(),
       })
       .parse(d),
   )
   .handler(async ({ data }) => {
     const patch: Record<string, unknown> = {};
     if (data.relator_id !== undefined) patch.relator_id = data.relator_id;
+    if (data.decisao !== undefined) patch.decisao = data.decisao;
+    if (data.justificativa !== undefined) patch.justificativa = data.justificativa;
+    if (data.condicionantes !== undefined) patch.condicionantes = data.condicionantes;
+    if (data.estagio_sugerido !== undefined)
+      patch.estagio_sugerido = data.estagio_sugerido;
     if (Object.keys(patch).length === 0) return { ok: true as const };
     const { error } = await supabaseAdmin
       .from("comite_pauta")
@@ -406,5 +423,69 @@ export const updatePautaItem = createServerFn({ method: "POST" })
       .update(patch as any)
       .eq("id", data.id);
     if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+// ---------- REALIZAR (fechamento) ----------
+export const realizarComite = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        ata_consolidada: z.string().max(20000).nullable().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: before, error: bErr } = await supabaseAdmin
+      .from("comites")
+      .select("status, ata_consolidada, criado_por_id")
+      .eq("id", data.id)
+      .single();
+    if (bErr || !before) throw new Error("Comitê não encontrado.");
+
+    const { data: me } = await supabaseAdmin
+      .from("profiles")
+      .select("role")
+      .eq("id", context.userId)
+      .single();
+    const allowed =
+      me?.role === "admin" ||
+      me?.role === "lider" ||
+      before.criado_por_id === context.userId;
+    if (!allowed) throw new Error("Sem permissão para realizar este comitê.");
+
+    if (before.status !== "preparacao") {
+      throw new Error("Só é possível realizar um comitê em preparação.");
+    }
+
+    const { data: pauta, error: pErr } = await supabaseAdmin
+      .from("comite_pauta")
+      .select("decisao")
+      .eq("comite_id", data.id);
+    if (pErr) throw new Error(pErr.message);
+    if (!pauta || pauta.length === 0) {
+      throw new Error(
+        "Adicione ao menos um projeto à pauta antes de realizar.",
+      );
+    }
+    if (pauta.some((p) => !p.decisao || p.decisao === "pendente")) {
+      throw new Error(
+        "Registre a decisão de todos os projetos antes de realizar o comitê.",
+      );
+    }
+
+    const nextAta =
+      data.ata_consolidada !== undefined && data.ata_consolidada !== null
+        ? data.ata_consolidada
+        : before.ata_consolidada;
+
+    const { error: uErr } = await supabaseAdmin
+      .from("comites")
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .update({ status: "realizado", ata_consolidada: nextAta } as any)
+      .eq("id", data.id);
+    if (uErr) throw new Error(uErr.message);
     return { ok: true as const };
   });
