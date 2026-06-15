@@ -20,6 +20,7 @@ import { Route as AuthenticatedMaRouteImport } from './routes/_authenticated/ma'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedDocumentosRouteImport } from './routes/_authenticated/documentos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedAdminImportRouteImport } from './routes/_authenticated/admin-import'
 import { Route as AuthenticatedComitesIndexRouteImport } from './routes/_authenticated/comites/index'
 import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos/$id'
@@ -83,6 +84,12 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedAdminImportRoute =
+  AuthenticatedAdminImportRouteImport.update({
+    id: '/admin-import',
+    path: '/admin-import',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedComitesIndexRoute =
   AuthenticatedComitesIndexRouteImport.update({
     id: '/comites/',
@@ -115,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/aceitar-convite': typeof AceitarConviteRoute
   '/login': typeof LoginRoute
+  '/admin-import': typeof AuthenticatedAdminImportRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/documentos': typeof AuthenticatedDocumentosRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -131,6 +139,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/aceitar-convite': typeof AceitarConviteRoute
   '/login': typeof LoginRoute
+  '/admin-import': typeof AuthenticatedAdminImportRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/documentos': typeof AuthenticatedDocumentosRoute
   '/equipe': typeof AuthenticatedEquipeRoute
@@ -150,6 +159,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/aceitar-convite': typeof AceitarConviteRoute
   '/login': typeof LoginRoute
+  '/_authenticated/admin-import': typeof AuthenticatedAdminImportRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/documentos': typeof AuthenticatedDocumentosRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
@@ -170,6 +180,7 @@ export interface FileRouteTypes {
     | '/'
     | '/aceitar-convite'
     | '/login'
+    | '/admin-import'
     | '/configuracoes'
     | '/documentos'
     | '/equipe'
@@ -186,6 +197,7 @@ export interface FileRouteTypes {
   to:
     | '/aceitar-convite'
     | '/login'
+    | '/admin-import'
     | '/configuracoes'
     | '/documentos'
     | '/equipe'
@@ -204,6 +216,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/aceitar-convite'
     | '/login'
+    | '/_authenticated/admin-import'
     | '/_authenticated/configuracoes'
     | '/_authenticated/documentos'
     | '/_authenticated/equipe'
@@ -306,6 +319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/admin-import': {
+      id: '/_authenticated/admin-import'
+      path: '/admin-import'
+      fullPath: '/admin-import'
+      preLoaderRoute: typeof AuthenticatedAdminImportRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/comites/': {
       id: '/_authenticated/comites/'
       path: '/comites'
@@ -345,6 +365,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteChildren {
+  AuthenticatedAdminImportRoute: typeof AuthenticatedAdminImportRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDocumentosRoute: typeof AuthenticatedDocumentosRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
@@ -359,6 +380,7 @@ interface AuthenticatedRouteChildren {
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedAdminImportRoute: AuthenticatedAdminImportRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDocumentosRoute: AuthenticatedDocumentosRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
@@ -386,13 +408,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
