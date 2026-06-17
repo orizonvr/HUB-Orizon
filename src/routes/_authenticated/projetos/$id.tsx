@@ -431,7 +431,7 @@ function DossiePage() {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {t.responsaveis.map((r) => r.nome).join(", ") || DASH} ·
-                  prazo {formatAbsolute(t.prazo)}
+                  prazo {t.prazo ? formatAbsolute(t.prazo) : "sem prazo"}
                 </div>
               </li>
             ))}
