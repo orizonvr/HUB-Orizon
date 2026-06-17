@@ -332,7 +332,7 @@ function TarefaRow({
 
         <Input
           type="date"
-          value={tarefa.prazo}
+          value={tarefa.prazo ?? ""}
           onClick={stopClick}
           onChange={(e) =>
             e.target.value && mut.mutate({ prazo: e.target.value })
