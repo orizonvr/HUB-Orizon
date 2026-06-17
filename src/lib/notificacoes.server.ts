@@ -62,7 +62,7 @@ function emailLayout(opts: {
   intro: string;
   titulo: string;
   projetoNome: string;
-  prazo: string;
+  prazo: string | null;
   prioridade: string;
   descricao?: string | null;
   ctaUrl: string;
