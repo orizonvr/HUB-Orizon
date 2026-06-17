@@ -223,6 +223,12 @@ function TarefasPage() {
             <CalendarPlus className="h-4 w-4 mr-1" />
             Reunião de Pipeline
           </Button>
+          {profile?.role === "admin" && (
+            <Button variant="outline" onClick={() => setShowImport(true)}>
+              <Upload className="h-4 w-4 mr-1" />
+              Importar do Planner
+            </Button>
+          )}
           <Button onClick={() => setShowNew(true)}>
             <Plus className="h-4 w-4 mr-1" />
             Nova tarefa
