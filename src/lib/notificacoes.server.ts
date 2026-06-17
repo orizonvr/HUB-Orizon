@@ -22,7 +22,8 @@ function emailFrom() {
   return process.env.EMAIL_FROM || "OrizonVR Pipeline <onboarding@resend.dev>";
 }
 
-function fmtDateBR(iso: string) {
+function fmtDateBR(iso: string | null) {
+  if (!iso) return "Sem prazo";
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
