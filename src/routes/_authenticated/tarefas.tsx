@@ -110,6 +110,7 @@ function TarefasPage() {
   const [fOrigem, setFOrigem] = useState<string>("all");
   const [showNew, setShowNew] = useState(false);
   const [showRodada, setShowRodada] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const setEscopoUrl = (e: Escopo) => {
