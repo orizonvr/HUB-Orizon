@@ -405,9 +405,17 @@ export function PrazoBadge({
   prazo,
   concluida,
 }: {
-  prazo: string;
+  prazo: string | null;
   concluida?: boolean;
 }) {
+  if (!prazo) {
+    return (
+      <span className="inline-flex items-center gap-1 text-muted-foreground italic">
+        <Calendar className="h-3 w-3" />
+        Sem prazo
+      </span>
+    );
+  }
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const p = new Date(prazo + "T00:00:00");
@@ -435,7 +443,8 @@ export function PrazoBadge({
   );
 }
 
-function formatPrazoBR(iso: string): string {
+function formatPrazoBR(iso: string | null): string {
+  if (!iso) return "Sem prazo";
   const d = new Date(iso + "T00:00:00");
   if (isNaN(d.getTime())) return iso;
   return new Intl.DateTimeFormat("pt-BR", {
