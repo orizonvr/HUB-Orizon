@@ -177,7 +177,7 @@ function buildDossieMd(args: {
     for (const t of tarefasAbertas) {
       const resp = t.responsaveis.map((r) => r.nome).join(", ") || DASH;
       L.push(
-        `- **${t.titulo}** — ${resp} · prazo ${formatAbsolute(t.prazo)} · ${PRIORIDADE_LABEL[t.prioridade]}`,
+        `- **${t.titulo}** — ${resp} · prazo ${t.prazo ? formatAbsolute(t.prazo) : "sem prazo"} · ${PRIORIDADE_LABEL[t.prioridade]}`,
       );
     }
   }
