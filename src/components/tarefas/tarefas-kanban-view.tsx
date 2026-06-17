@@ -81,7 +81,7 @@ export function TarefasKanbanView({
     }
     // sort by prazo ascending within each column
     for (const arr of m.values()) {
-      arr.sort((a, b) => a.prazo.localeCompare(b.prazo));
+      arr.sort((a, b) => (a.prazo ?? "9999").localeCompare(b.prazo ?? "9999"));
     }
     return m;
   }, [columns, filteredTarefas]);
