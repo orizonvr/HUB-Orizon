@@ -552,7 +552,7 @@ export type Database = {
           descricao: string | null
           id: string
           origem: Database["public"]["Enums"]["tarefa_origem"]
-          prazo: string
+          prazo: string | null
           prioridade: Database["public"]["Enums"]["tarefa_prioridade"]
           projeto_id: string
           responsavel_ids: string[]
@@ -568,7 +568,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           origem?: Database["public"]["Enums"]["tarefa_origem"]
-          prazo: string
+          prazo?: string | null
           prioridade?: Database["public"]["Enums"]["tarefa_prioridade"]
           projeto_id: string
           responsavel_ids: string[]
@@ -584,7 +584,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           origem?: Database["public"]["Enums"]["tarefa_origem"]
-          prazo?: string
+          prazo?: string | null
           prioridade?: Database["public"]["Enums"]["tarefa_prioridade"]
           projeto_id?: string
           responsavel_ids?: string[]

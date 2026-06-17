@@ -1,0 +1,1 @@
+ALTER TABLE public.tarefas ALTER COLUMN prazo DROP NOT NULL;
