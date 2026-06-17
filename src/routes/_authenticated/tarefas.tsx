@@ -56,6 +56,7 @@ import { avatarBgStyle } from "@/lib/format";
 import { initials } from "@/lib/ma-utils";
 import { NovaTarefaDialog } from "@/components/tarefas/nova-tarefa-dialog";
 import { NovaRodadaDrawer } from "@/components/tarefas/nova-rodada-drawer";
+import { ImportPlannerDialog } from "@/components/tarefas/import-planner-dialog";
 import { PrazoBadge } from "@/components/tarefas/tarefas-tab";
 import { useAuth } from "@/hooks/use-auth";
 import { useSessionCompleted } from "@/hooks/use-session-completed";
