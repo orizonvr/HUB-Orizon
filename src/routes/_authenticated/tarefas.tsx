@@ -35,6 +35,7 @@ import {
   Loader2,
   ChevronRight,
   ChevronDown,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -55,6 +56,7 @@ import { avatarBgStyle } from "@/lib/format";
 import { initials } from "@/lib/ma-utils";
 import { NovaTarefaDialog } from "@/components/tarefas/nova-tarefa-dialog";
 import { NovaRodadaDrawer } from "@/components/tarefas/nova-rodada-drawer";
+import { ImportPlannerDialog } from "@/components/tarefas/import-planner-dialog";
 import { PrazoBadge } from "@/components/tarefas/tarefas-tab";
 import { useAuth } from "@/hooks/use-auth";
 import { useSessionCompleted } from "@/hooks/use-session-completed";
@@ -108,6 +110,7 @@ function TarefasPage() {
   const [fOrigem, setFOrigem] = useState<string>("all");
   const [showNew, setShowNew] = useState(false);
   const [showRodada, setShowRodada] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const setEscopoUrl = (e: Escopo) => {
@@ -160,6 +163,7 @@ function TarefasPage() {
       if (fPrio !== "all" && t.prioridade !== fPrio) return false;
       if (fOrigem !== "all" && t.origem !== fOrigem) return false;
       if (fPrazo !== "todos") {
+        if (!t.prazo) return false;
         const p = new Date(t.prazo + "T00:00:00");
         const diff = Math.round(
           (p.getTime() - today.getTime()) / 86_400_000,
@@ -219,6 +223,12 @@ function TarefasPage() {
             <CalendarPlus className="h-4 w-4 mr-1" />
             Reunião de Pipeline
           </Button>
+          {profile?.role === "admin" && (
+            <Button variant="outline" onClick={() => setShowImport(true)}>
+              <Upload className="h-4 w-4 mr-1" />
+              Importar do Planner
+            </Button>
+          )}
           <Button onClick={() => setShowNew(true)}>
             <Plus className="h-4 w-4 mr-1" />
             Nova tarefa
@@ -400,6 +410,13 @@ function TarefasPage() {
         profiles={profiles}
         defaultResponsavelId={user?.id ?? null}
       />
+      {profile?.role === "admin" && (
+        <ImportPlannerDialog
+          open={showImport}
+          onOpenChange={setShowImport}
+          projetos={projetos}
+        />
+      )}
     </div>
   );
 }

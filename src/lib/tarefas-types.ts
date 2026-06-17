@@ -28,9 +28,10 @@ export type Tarefa = {
   titulo: string;
   descricao: string | null;
   /** Lista de responsáveis. Sempre tem ≥1 elemento. */
+  /** Lista de responsáveis. Pode ser vazia em tarefas importadas. */
   responsavel_ids: string[];
   criado_por_id: string;
-  prazo: string; // YYYY-MM-DD
+  prazo: string | null; // YYYY-MM-DD, nullable para tarefas importadas sem vencimento
   status: TarefaStatus;
   prioridade: TarefaPrioridade;
   origem: TarefaOrigem;

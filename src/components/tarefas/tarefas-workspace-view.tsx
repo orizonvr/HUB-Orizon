@@ -113,6 +113,7 @@ export function TarefasWorkspaceView({
       if (fPrio !== "all" && t.prioridade !== fPrio) return false;
       if (fOrigem !== "all" && t.origem !== fOrigem) return false;
       if (fPrazo !== "todos") {
+        if (!t.prazo) return false;
         const p = new Date(t.prazo + "T00:00:00");
         const diff = Math.round(
           (p.getTime() - today.getTime()) / 86_400_000,
@@ -128,6 +129,7 @@ export function TarefasWorkspaceView({
 
   const vencidas = tarefas.filter((t) => {
     if (t.status !== "pendente" && t.status !== "em_andamento") return false;
+    if (!t.prazo) return false;
     return new Date(t.prazo + "T00:00:00") < new Date(new Date().toDateString());
   }).length;
 

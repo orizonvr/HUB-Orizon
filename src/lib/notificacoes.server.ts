@@ -22,7 +22,8 @@ function emailFrom() {
   return process.env.EMAIL_FROM || "OrizonVR Pipeline <onboarding@resend.dev>";
 }
 
-function fmtDateBR(iso: string) {
+function fmtDateBR(iso: string | null) {
+  if (!iso) return "Sem prazo";
   const [y, m, d] = iso.split("-");
   return `${d}/${m}/${y}`;
 }
@@ -61,7 +62,7 @@ function emailLayout(opts: {
   intro: string;
   titulo: string;
   projetoNome: string;
-  prazo: string;
+  prazo: string | null;
   prioridade: string;
   descricao?: string | null;
   ctaUrl: string;
@@ -123,7 +124,7 @@ export type TarefaCronPayload = {
   id: string;
   titulo: string;
   descricao: string | null;
-  prazo: string;
+  prazo: string | null;
   prioridade: string;
   projeto_id: string;
   responsavel_ids: string[];
