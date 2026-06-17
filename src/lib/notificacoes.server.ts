@@ -124,7 +124,7 @@ export type TarefaCronPayload = {
   id: string;
   titulo: string;
   descricao: string | null;
-  prazo: string;
+  prazo: string | null;
   prioridade: string;
   projeto_id: string;
   responsavel_ids: string[];
