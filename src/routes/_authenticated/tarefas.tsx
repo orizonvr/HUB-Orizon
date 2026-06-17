@@ -410,6 +410,13 @@ function TarefasPage() {
         profiles={profiles}
         defaultResponsavelId={user?.id ?? null}
       />
+      {profile?.role === "admin" && (
+        <ImportPlannerDialog
+          open={showImport}
+          onOpenChange={setShowImport}
+          projetos={projetos}
+        />
+      )}
     </div>
   );
 }
