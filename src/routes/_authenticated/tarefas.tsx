@@ -35,6 +35,7 @@ import {
   Loader2,
   ChevronRight,
   ChevronDown,
+  Upload,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
