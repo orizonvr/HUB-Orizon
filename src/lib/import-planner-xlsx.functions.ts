@@ -287,12 +287,31 @@ export const commitImportPlannerXlsx = createServerFn({ method: "POST" })
     const projetoIdPorBucket = new Map<string, string>();
     const projetosCriadosIds: string[] = [];
     if (data.novos_projetos.length > 0) {
+      // Derivar um `estagio` válido por tipo a partir de algum projeto existente
+      // do mesmo tipo — assim passa na CHECK constraint qualquer que seja o
+      // conjunto aceito em produção. Fallback razoável se não houver nenhum.
+      const { data: projetosExistentes } = await supabaseAdmin
+        .from("projetos")
+        .select("tipo, estagio");
+      const existentes = (projetosExistentes ?? []) as Array<{
+        tipo: string;
+        estagio: string;
+      }>;
+      const estagioPorTipo: Record<"ma" | "novos_negocios", string> = {
+        ma:
+          existentes.find((p) => p.tipo === "ma")?.estagio ??
+          "avaliacao_inicial",
+        novos_negocios:
+          existentes.find((p) => p.tipo === "novos_negocios")?.estagio ??
+          "validacao",
+      };
+
       const insertRows = data.novos_projetos.map((p) => ({
         nome: p.nome,
         tipo: p.tipo,
         status: p.status,
         responsavel_id: context.userId,
-        criado_por_id: context.userId,
+        estagio: estagioPorTipo[p.tipo],
       }));
       const { data: criados, error: errProj } = await supabaseAdmin
         .from("projetos")
