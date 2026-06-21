@@ -254,7 +254,9 @@ export const commitImportPlannerXlsx = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => commitSchema.parse(d))
   .handler(async ({ data, context }) => {
+    const PRAZO_SEM_DEADLINE = "2099-12-31";
     await assertAdmin(context.userId);
+
 
     const { count: countAtual } = await supabaseAdmin
       .from("tarefas")
