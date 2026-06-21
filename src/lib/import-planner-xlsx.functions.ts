@@ -254,7 +254,9 @@ export const commitImportPlannerXlsx = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => commitSchema.parse(d))
   .handler(async ({ data, context }) => {
+    const PRAZO_SEM_DEADLINE = "2099-12-31";
     await assertAdmin(context.userId);
+
 
     const { count: countAtual } = await supabaseAdmin
       .from("tarefas")
@@ -369,10 +371,13 @@ export const commitImportPlannerXlsx = createServerFn({ method: "POST" })
         "Data de vencimento",
       );
 
-      let prazo: string | null = toIsoDate(dataConclusaoRaw);
+      let prazo: string = toIsoDate(dataConclusaoRaw) ?? "";
       if (!prazo && status === "concluida") {
-        prazo = toIsoDate(concluidaEmRaw) ?? toIsoDate(criadoEmRaw);
+        prazo =
+          toIsoDate(concluidaEmRaw) ?? toIsoDate(criadoEmRaw) ?? PRAZO_SEM_DEADLINE;
       }
+      if (!prazo) prazo = PRAZO_SEM_DEADLINE;
+
 
       const concluida_em = toIsoTimestamp(concluidaEmRaw);
       const createdAt = toIsoTimestamp(criadoEmRaw) ?? new Date().toISOString();
