@@ -29,6 +29,14 @@ export type ProjetoConfig = {
   finVariant: "ma" | "nn";
   // Show "Tipo de iniciativa" field in NewProjectDialog
   showTipoIniciativa: boolean;
+  // Sector options for this tipo
+  setores: string[];
+  // Label of the first "name" field in the new-project form
+  nomeLabel: string;
+  // Show comentários tab in the project sheet
+  showComentarios: boolean;
+  // Show "Tese estratégica" field in the new-project form
+  showTeseNoForm: boolean;
 };
 
 const labelsFor = (arr: ReadonlyArray<{ key: string; label: string }>) =>
