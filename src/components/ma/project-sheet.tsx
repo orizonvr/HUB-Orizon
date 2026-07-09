@@ -863,15 +863,19 @@ function Timeline({
 function DocsTab({
   projetoId,
   documentos,
+  tipo: projetoTipo,
 }: {
   projetoId: string;
   documentos: DetailData["documentos"];
+  tipo: "ma" | "novos_negocios";
 }) {
   const qc = useQueryClient();
   const uploadFn = useServerFn(uploadDocumento);
   const urlFn = useServerFn(getDocumentoUrl);
   const delFn = useServerFn(deleteDocumento);
-  const [tipo, setTipo] = useState("Outro");
+  const tipoOptions =
+    projetoTipo === "novos_negocios" ? TIPO_DOCUMENTO_NN : TIPO_DOCUMENTO;
+  const [tipo, setTipo] = useState(tipoOptions[0] ?? "Outro");
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
