@@ -1148,3 +1148,19 @@ function describeAcao(
       return acao;
   }
 }
+
+function ProximosPassosReadOnly({ projetoId }: { projetoId: string }) {
+  const listFn = useServerFn(listTarefasByProjeto);
+  const q = useQuery({
+    queryKey: ["tarefas-projeto", projetoId],
+    queryFn: () => listFn({ data: { projeto_id: projetoId } }),
+  });
+  const proxima = (q.data?.tarefas ?? []).find(
+    (t) => t.status !== "concluida",
+  );
+  return (
+    <div className="text-sm text-muted-foreground">
+      {q.isLoading ? "Carregando..." : proxima?.titulo ?? "—"}
+    </div>
+  );
+}
