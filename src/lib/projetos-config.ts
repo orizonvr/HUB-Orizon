@@ -82,7 +82,11 @@ export const NN_CONFIG: ProjetoConfig = {
     { key: "payback_anos", label: "Payback", format: "years" },
   ],
   finVariant: "nn",
-  showTipoIniciativa: true,
+  showTipoIniciativa: false,
+  setores: SETORES_NN,
+  nomeLabel: "Nome",
+  showComentarios: false,
+  showTeseNoForm: false,
 };
 
 export const TIPO_INICIATIVA = [
