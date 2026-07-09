@@ -25,7 +25,7 @@ import {
   createProjeto,
   type Profile,
 } from "@/lib/projetos.functions";
-import { SETORES } from "@/lib/ma-utils";
+import { SUBCATEGORIAS } from "@/lib/projetos-types";
 import {
   type ProjetoConfig,
   TIPO_INICIATIVA,
@@ -47,14 +47,17 @@ export function NewProjectDialog({
 }) {
   const createFn = useServerFn(createProjeto);
   const qc = useQueryClient();
+  const isNN = config.tipo === "novos_negocios";
 
   const empty = () => ({
     nome: "",
     contraparte: "",
     setor: "",
+    subcategoria: "",
     estagio: config.estagioInicial,
     responsavel_id: "",
     valor_estimado: "",
+    data_inicio: "",
     data_fechamento_prevista: "",
     descricao: "",
     tese: "",
@@ -71,14 +74,20 @@ export function NewProjectDialog({
           nome: form.nome.trim(),
           contraparte: form.contraparte.trim(),
           setor: form.setor,
+          subcategoria: isNN ? form.subcategoria || null : null,
           estagio: form.estagio,
           responsavel_id: form.responsavel_id,
-          valor_estimado: Number(form.valor_estimado || 0),
-          data_fechamento_prevista: form.data_fechamento_prevista,
+          valor_estimado: isNN
+            ? null
+            : Number(form.valor_estimado || 0),
+          data_inicio: isNN ? form.data_inicio || null : null,
+          data_fechamento_prevista: isNN
+            ? null
+            : form.data_fechamento_prevista || null,
           descricao: config.showTipoIniciativa
             ? buildDescricaoComTipo(form.tipo_iniciativa, form.descricao)
             : form.descricao || null,
-          tese: form.tese || null,
+          tese: config.showTeseNoForm ? form.tese || null : null,
         },
       }),
     onSuccess: (res) => {
@@ -97,8 +106,9 @@ export function NewProjectDialog({
     form.setor &&
     form.estagio &&
     form.responsavel_id &&
-    form.valor_estimado &&
-    form.data_fechamento_prevista &&
+    (isNN
+      ? form.subcategoria && form.data_inicio
+      : form.valor_estimado && form.data_fechamento_prevista) &&
     (!config.showTipoIniciativa || form.tipo_iniciativa);
 
   return (
@@ -109,11 +119,13 @@ export function NewProjectDialog({
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4 py-2">
           <div className="space-y-1.5 col-span-2">
-            <Label>Codinome *</Label>
+            <Label>{config.nomeLabel} *</Label>
             <Input
               value={form.nome}
               onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              placeholder="Ex.: Projeto Atlas"
+              placeholder={
+                isNN ? "Ex.: Aterro Município X" : "Ex.: Projeto Atlas"
+              }
             />
           </div>
           <div className="space-y-1.5">
@@ -135,7 +147,7 @@ export function NewProjectDialog({
                 <SelectValue placeholder="Selecionar" />
               </SelectTrigger>
               <SelectContent>
-                {SETORES.map((s) => (
+                {config.setores.map((s) => (
                   <SelectItem key={s} value={s}>
                     {s}
                   </SelectItem>
@@ -143,6 +155,26 @@ export function NewProjectDialog({
               </SelectContent>
             </Select>
           </div>
+          {isNN && (
+            <div className="space-y-1.5">
+              <Label>Subcategoria *</Label>
+              <Select
+                value={form.subcategoria}
+                onValueChange={(v) => setForm({ ...form, subcategoria: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUBCATEGORIAS.map((s) => (
+                    <SelectItem key={s.key} value={s.key}>
+                      {s.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label>Estágio inicial *</Label>
             <Select
@@ -203,33 +235,48 @@ export function NewProjectDialog({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label>{config.valorInputLabel} *</Label>
-            <Input
-              type="number"
-              value={form.valor_estimado}
-              onChange={(e) =>
-                setForm({ ...form, valor_estimado: e.target.value })
-              }
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label>
-              {config.tipo === "ma"
-                ? "Fechamento previsto *"
-                : "Previsão de implementação *"}
-            </Label>
-            <Input
-              type="date"
-              value={form.data_fechamento_prevista}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  data_fechamento_prevista: e.target.value,
-                })
-              }
-            />
-          </div>
+          {!isNN && (
+            <div className="space-y-1.5">
+              <Label>{config.valorInputLabel} *</Label>
+              <Input
+                type="number"
+                value={form.valor_estimado}
+                onChange={(e) =>
+                  setForm({ ...form, valor_estimado: e.target.value })
+                }
+              />
+            </div>
+          )}
+          {isNN ? (
+            <div className="space-y-1.5">
+              <Label>Data de Inclusão do Projeto *</Label>
+              <Input
+                type="date"
+                value={form.data_inicio}
+                onChange={(e) =>
+                  setForm({ ...form, data_inicio: e.target.value })
+                }
+              />
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>
+                {config.tipo === "ma"
+                  ? "Fechamento previsto *"
+                  : "Previsão de implementação *"}
+              </Label>
+              <Input
+                type="date"
+                value={form.data_fechamento_prevista}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    data_fechamento_prevista: e.target.value,
+                  })
+                }
+              />
+            </div>
+          )}
           <div className="space-y-1.5 col-span-2">
             <Label>Descrição (opcional)</Label>
             <Textarea
@@ -240,14 +287,16 @@ export function NewProjectDialog({
               rows={2}
             />
           </div>
-          <div className="space-y-1.5 col-span-2">
-            <Label>Tese estratégica (opcional)</Label>
-            <Textarea
-              value={form.tese}
-              onChange={(e) => setForm({ ...form, tese: e.target.value })}
-              rows={3}
-            />
-          </div>
+          {config.showTeseNoForm && (
+            <div className="space-y-1.5 col-span-2">
+              <Label>Tese estratégica (opcional)</Label>
+              <Textarea
+                value={form.tese}
+                onChange={(e) => setForm({ ...form, tese: e.target.value })}
+                rows={3}
+              />
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
