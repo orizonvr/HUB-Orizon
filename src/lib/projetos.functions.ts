@@ -146,10 +146,12 @@ const createSchema = z.object({
   nome: z.string().min(1).max(200),
   contraparte: z.string().min(1).max(200),
   setor: z.string().min(1).max(120),
+  subcategoria: z.string().max(120).optional().nullable(),
   estagio: z.string().min(1).max(60),
   responsavel_id: z.string().uuid(),
-  valor_estimado: z.number().nonnegative(),
-  data_fechamento_prevista: z.string().min(1),
+  valor_estimado: z.number().nonnegative().optional().nullable(),
+  data_inicio: z.string().min(1).optional().nullable(),
+  data_fechamento_prevista: z.string().min(1).optional().nullable(),
   descricao: z.string().max(4000).optional().nullable(),
   tese: z.string().max(8000).optional().nullable(),
 });
@@ -168,13 +170,15 @@ export const createProjeto = createServerFn({ method: "POST" })
         nome: data.nome,
         contraparte: data.contraparte,
         setor: data.setor,
+        subcategoria: data.subcategoria ?? null,
         estagio: data.estagio,
         responsavel_id: data.responsavel_id,
-        valor_estimado: data.valor_estimado,
-        data_fechamento_prevista: data.data_fechamento_prevista,
+        valor_estimado: data.valor_estimado ?? 0,
+        data_fechamento_prevista: data.data_fechamento_prevista ?? null,
         descricao: data.descricao ?? null,
         tese: data.tese ?? null,
-        data_inicio: new Date().toISOString().slice(0, 10),
+        data_inicio:
+          data.data_inicio ?? new Date().toISOString().slice(0, 10),
       })
       .select("*")
       .single();
@@ -216,7 +220,6 @@ const updatableFields = [
   "tir_estimada",
   "payback_anos",
   "capex_estimado",
-  "receita_projetada_ano3",
   "receita_projetada_ano3",
   "tam",
   "volume_ton_dia",

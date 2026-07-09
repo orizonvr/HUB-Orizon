@@ -60,13 +60,14 @@ import {
   MA_ESTAGIO_LABEL,
   STATUS_LABEL,
   TIPO_DOCUMENTO,
-  SETORES,
+  TIPO_DOCUMENTO_NN,
 } from "@/lib/ma-utils";
 import {
   type ProjetoConfig,
 } from "@/lib/projetos-config";
 import { SUBCATEGORIAS } from "@/lib/projetos-types";
 import { TarefasTab } from "@/components/tarefas/tarefas-tab";
+import { listTarefasByProjeto } from "@/lib/tarefas.functions";
 import { useAuth } from "@/hooks/use-auth";
 
 type Props = {
@@ -267,7 +268,9 @@ function SheetBody({
           <TabsTrigger value="fin">Financeiro</TabsTrigger>
           <TabsTrigger value="crono">Cronograma</TabsTrigger>
           <TabsTrigger value="docs">Documentos</TabsTrigger>
-          <TabsTrigger value="coms">Comentários</TabsTrigger>
+          {config.showComentarios && (
+            <TabsTrigger value="coms">Comentários</TabsTrigger>
+          )}
           <TabsTrigger value="ativ">Atividade</TabsTrigger>
         </TabsList>
 
@@ -283,7 +286,7 @@ function SheetBody({
                     <SelectValue placeholder="Selecionar setor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {SETORES.map((s) => (
+                    {config.setores.map((s) => (
                       <SelectItem key={s} value={s}>
                         {s}
                       </SelectItem>
@@ -366,6 +369,9 @@ function SheetBody({
                   />
                 </Field>
               </div>
+              <Field label="Próximos Passos">
+                <ProximosPassosReadOnly projetoId={projeto.id} />
+              </Field>
             </TabsContent>
 
             <TabsContent value="tarefas" className="mt-0">
@@ -394,20 +400,32 @@ function SheetBody({
                   rows={4}
                 />
               </Field>
-              <Field label="Próximos passos">
-                <InlineTextarea
-                  value={projeto.proximos_passos ?? ""}
-                  onSave={(v) => save({ proximos_passos: v })}
-                  rows={4}
-                />
-              </Field>
-              <Field label="Notas estratégicas">
-                <InlineTextarea
-                  value={projeto.notas_estrategicas ?? ""}
-                  onSave={(v) => save({ notas_estrategicas: v })}
-                  rows={6}
-                />
-              </Field>
+              {config.tipo === "novos_negocios" ? (
+                <Field label="Notas">
+                  <InlineTextarea
+                    value={projeto.notas_estrategicas ?? ""}
+                    onSave={(v) => save({ notas_estrategicas: v })}
+                    rows={6}
+                  />
+                </Field>
+              ) : (
+                <>
+                  <Field label="Próximos passos">
+                    <InlineTextarea
+                      value={projeto.proximos_passos ?? ""}
+                      onSave={(v) => save({ proximos_passos: v })}
+                      rows={4}
+                    />
+                  </Field>
+                  <Field label="Notas estratégicas">
+                    <InlineTextarea
+                      value={projeto.notas_estrategicas ?? ""}
+                      onSave={(v) => save({ notas_estrategicas: v })}
+                      rows={6}
+                    />
+                  </Field>
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="fin" className="mt-0 space-y-4">
@@ -423,15 +441,21 @@ function SheetBody({
             </TabsContent>
 
             <TabsContent value="docs" className="mt-0">
-              <DocsTab projetoId={projeto.id} documentos={documentos} />
-            </TabsContent>
-
-            <TabsContent value="coms" className="mt-0">
-              <CommentsTab
+              <DocsTab
                 projetoId={projeto.id}
-                comentarios={comentarios}
+                documentos={documentos}
+                tipo={config.tipo}
               />
             </TabsContent>
+
+            {config.showComentarios && (
+              <TabsContent value="coms" className="mt-0">
+                <CommentsTab
+                  projetoId={projeto.id}
+                  comentarios={comentarios}
+                />
+              </TabsContent>
+            )}
 
             <TabsContent value="ativ" className="mt-0">
               <ActivityTab atividades={atividades} />
@@ -645,7 +669,28 @@ function FinTab({
   if (config.finVariant === "nn") {
     return (
       <div className="space-y-5">
-        <OperationalMetrics projeto={projeto} save={save} />
+        <div className="space-y-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Métricas Operacionais
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Volume Ano 3"
+              value={projeto.volume_ton_dia}
+              onSave={(v) => save({ volume_ton_dia: v })}
+            />
+            <NumberField
+              label="Receita Líquida Ano 3"
+              value={projeto.receita_projetada_ano3}
+              onSave={(v) => save({ receita_projetada_ano3: v })}
+            />
+            <NumberField
+              label="EBITDA Ano 3"
+              value={projeto.ebitda_alvo}
+              onSave={(v) => save({ ebitda_alvo: v })}
+            />
+          </div>
+        </div>
         <Separator />
         <div className="space-y-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -653,57 +698,42 @@ function FinTab({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <NumberField
-              label="Investimento estimado (R$)"
-              value={projeto.valor_estimado}
-              onSave={(v) => save({ valor_estimado: v })}
-            />
-            <NumberField
-              label="Capex estimado (R$)"
+              label="CAPEX Tecnologia (R$)"
               value={projeto.capex_estimado}
               onSave={(v) => save({ capex_estimado: v })}
             />
             <NumberField
-              label="Receita projetada ano 3 (R$)"
-              value={projeto.receita_projetada_ano3}
-              onSave={(v) => save({ receita_projetada_ano3: v })}
+              label="CAPEX Total Nominal (R$)"
+              value={projeto.valor_transacao_mm}
+              onSave={(v) => save({ valor_transacao_mm: v })}
             />
             <NumberField
-              label="TIR estimada (%)"
+              label="TIR Real Projeto (IPCA + %)"
               value={projeto.tir_estimada}
               onSave={(v) => save({ tir_estimada: v })}
             />
             <NumberField
-              label="Payback (anos)"
-              value={projeto.payback_anos}
-              onSave={(v) => save({ payback_anos: v })}
+              label="TIR Real Acionista (IPCA + %)"
+              value={projeto.percentual_orizon}
+              onSave={(v) => save({ percentual_orizon: v })}
             />
             <NumberField
-              label="TAM — Mercado endereçável (R$)"
+              label="Valor Presente — Taxa (%)"
+              value={projeto.multiplo_ev_ebitda}
+              onSave={(v) => save({ multiplo_ev_ebitda: v })}
+            />
+            <NumberField
+              label="Valor Presente — Valor (R$)"
               value={projeto.tam}
               onSave={(v) => save({ tam: v })}
             />
+            <NumberField
+              label="Payback (Anos)"
+              value={projeto.payback_anos}
+              onSave={(v) => save({ payback_anos: v })}
+            />
           </div>
         </div>
-        {projeto.tam && projeto.receita_projetada_ano3 ? (
-          <>
-            <Separator />
-            <div className="space-y-2 rounded-md bg-muted/40 p-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Share de TAM (ano 3)
-                </span>
-                <span className="font-semibold">
-                  {(
-                    (Number(projeto.receita_projetada_ano3) /
-                      Number(projeto.tam)) *
-                    100
-                  ).toFixed(2)}
-                  %
-                </span>
-              </div>
-            </div>
-          </>
-        ) : null}
       </div>
     );
   }
@@ -839,15 +869,19 @@ function Timeline({
 function DocsTab({
   projetoId,
   documentos,
+  tipo: projetoTipo,
 }: {
   projetoId: string;
   documentos: DetailData["documentos"];
+  tipo: "ma" | "novos_negocios";
 }) {
   const qc = useQueryClient();
   const uploadFn = useServerFn(uploadDocumento);
   const urlFn = useServerFn(getDocumentoUrl);
   const delFn = useServerFn(deleteDocumento);
-  const [tipo, setTipo] = useState("Outro");
+  const tipoOptions =
+    projetoTipo === "novos_negocios" ? TIPO_DOCUMENTO_NN : TIPO_DOCUMENTO;
+  const [tipo, setTipo] = useState(tipoOptions[0] ?? "Outro");
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -886,7 +920,7 @@ function DocsTab({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {TIPO_DOCUMENTO.map((t) => (
+            {tipoOptions.map((t) => (
               <SelectItem key={t} value={t}>
                 {t}
               </SelectItem>
@@ -1113,4 +1147,20 @@ function describeAcao(
     default:
       return acao;
   }
+}
+
+function ProximosPassosReadOnly({ projetoId }: { projetoId: string }) {
+  const listFn = useServerFn(listTarefasByProjeto);
+  const q = useQuery({
+    queryKey: ["tarefas-projeto", projetoId],
+    queryFn: () => listFn({ data: { projeto_id: projetoId } }),
+  });
+  const proxima = (q.data?.tarefas ?? []).find(
+    (t) => t.status !== "concluida",
+  );
+  return (
+    <div className="text-sm text-muted-foreground">
+      {q.isLoading ? "Carregando..." : proxima?.titulo ?? "—"}
+    </div>
+  );
 }

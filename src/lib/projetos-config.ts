@@ -3,6 +3,7 @@ import {
   NN_ESTAGIOS,
   type ProjetoTipo,
 } from "@/lib/projetos-types";
+import { SETORES, SETORES_NN } from "@/lib/ma-utils";
 
 export type ExtraColumn = {
   key: "ebitda_alvo" | "multiplo_ev_ebitda" | "tir_estimada" | "payback_anos";
@@ -29,6 +30,14 @@ export type ProjetoConfig = {
   finVariant: "ma" | "nn";
   // Show "Tipo de iniciativa" field in NewProjectDialog
   showTipoIniciativa: boolean;
+  // Sector options for this tipo
+  setores: string[];
+  // Label of the first "name" field in the new-project form
+  nomeLabel: string;
+  // Show comentários tab in the project sheet
+  showComentarios: boolean;
+  // Show "Tese estratégica" field in the new-project form
+  showTeseNoForm: boolean;
 };
 
 const labelsFor = (arr: ReadonlyArray<{ key: string; label: string }>) =>
@@ -51,6 +60,10 @@ export const MA_CONFIG: ProjetoConfig = {
   ],
   finVariant: "ma",
   showTipoIniciativa: false,
+  setores: SETORES,
+  nomeLabel: "Codinome",
+  showComentarios: true,
+  showTeseNoForm: true,
 };
 
 export const NN_CONFIG: ProjetoConfig = {
@@ -69,7 +82,11 @@ export const NN_CONFIG: ProjetoConfig = {
     { key: "payback_anos", label: "Payback", format: "years" },
   ],
   finVariant: "nn",
-  showTipoIniciativa: true,
+  showTipoIniciativa: false,
+  setores: SETORES_NN,
+  nomeLabel: "Nome",
+  showComentarios: false,
+  showTeseNoForm: false,
 };
 
 export const TIPO_INICIATIVA = [
