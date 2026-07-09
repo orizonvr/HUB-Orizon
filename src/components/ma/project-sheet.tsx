@@ -61,8 +61,6 @@ import {
   STATUS_LABEL,
   TIPO_DOCUMENTO,
   TIPO_DOCUMENTO_NN,
-  SETORES,
-  SETORES_NN,
 } from "@/lib/ma-utils";
 import {
   type ProjetoConfig,
