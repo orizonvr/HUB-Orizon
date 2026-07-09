@@ -118,6 +118,15 @@ export const SETORES = [
   "Outros",
 ];
 
+export const SETORES_NN = [
+  "BioE",
+  "Comercial",
+  "Operacional",
+  "Economia Circular",
+  "Crédito Carbono",
+  "Leilão",
+];
+
 export const STATUS_LABEL: Record<string, string> = {
   ativo: "Ativo",
   pausado: "Pausado",
