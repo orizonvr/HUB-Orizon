@@ -14,27 +14,41 @@ export const MA_ESTAGIOS = [
 ] as const;
 
 export const NN_ESTAGIOS = [
-  { key: "analise_viabilidade", label: "Análise de Viabilidade" },
+  { key: "analise_viabilidade", label: "Discussões Iniciais" },
   { key: "discussoes_offtaker", label: "Discussões com Offtaker" },
-  { key: "negociacao", label: "Negociação" },
-  { key: "aprovacao_comite", label: "Aprovação Comitê" },
+  { key: "negociacao", label: "Discussões com Fornecedores" },
+  { key: "aprovacao_comite", label: "Materiais Finais" },
   { key: "implementacao", label: "Implementação" },
   { key: "operacao", label: "Operação" },
 ] as const;
 
 export const SUBCATEGORIAS = [
   { key: "biometano", label: "Biometano" },
-  { key: "co2", label: "CO2" },
   { key: "energia", label: "Energia" },
-  { key: "economia_circular", label: "Economia Circular" },
-  { key: "waste_to_energy", label: "Waste-to-Energy" },
-  { key: "aterros_greenfield", label: "Aterros Greenfield" },
-  { key: "licitacoes_ppps", label: "Licitações/PPPs" },
+  { key: "co2", label: "CO2" },
+  { key: "ure", label: "URE" },
+  { key: "ppp_licitacao", label: "PPP/Licitação" },
+  { key: "contrato_privado", label: "Contrato Privado" },
+  { key: "aterro", label: "Aterro" },
+  { key: "biogas", label: "Biogás" },
+  { key: "utm", label: "UTM" },
+  { key: "compostagem", label: "Compostagem" },
+  { key: "cdr", label: "CDR" },
+  { key: "venda_carbono", label: "Venda Carbono" },
+  { key: "parceria_carbono", label: "Parceria Carbono" },
 ] as const;
 
-export const SUBCATEGORIA_LABEL: Record<string, string> = Object.fromEntries(
-  SUBCATEGORIAS.map((s) => [s.key, s.label]),
-);
+const LEGACY_SUBCATEGORIA_LABEL: Record<string, string> = {
+  economia_circular: "Economia Circular",
+  waste_to_energy: "Waste-to-Energy",
+  aterros_greenfield: "Aterros Greenfield",
+  licitacoes_ppps: "Licitações/PPPs",
+};
+
+export const SUBCATEGORIA_LABEL: Record<string, string> = {
+  ...LEGACY_SUBCATEGORIA_LABEL,
+  ...Object.fromEntries(SUBCATEGORIAS.map((s) => [s.key, s.label])),
+};
 
 export type ProjetoTipo = "ma" | "novos_negocios";
 export type UserRole = "admin" | "lider" | "analista" | "observador";
