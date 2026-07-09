@@ -60,13 +60,16 @@ import {
   MA_ESTAGIO_LABEL,
   STATUS_LABEL,
   TIPO_DOCUMENTO,
+  TIPO_DOCUMENTO_NN,
   SETORES,
+  SETORES_NN,
 } from "@/lib/ma-utils";
 import {
   type ProjetoConfig,
 } from "@/lib/projetos-config";
 import { SUBCATEGORIAS } from "@/lib/projetos-types";
 import { TarefasTab } from "@/components/tarefas/tarefas-tab";
+import { listTarefasByProjeto } from "@/lib/tarefas.functions";
 import { useAuth } from "@/hooks/use-auth";
 
 type Props = {
