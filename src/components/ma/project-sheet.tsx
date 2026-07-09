@@ -914,7 +914,7 @@ function DocsTab({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {TIPO_DOCUMENTO.map((t) => (
+            {tipoOptions.map((t) => (
               <SelectItem key={t} value={t}>
                 {t}
               </SelectItem>
