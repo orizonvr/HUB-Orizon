@@ -136,3 +136,11 @@ export const STATUS_LABEL: Record<string, string> = {
 };
 
 export const TIPO_DOCUMENTO = ["NDA", "IIM", "DD Financeira", "SPA", "Outro"];
+
+export const TIPO_DOCUMENTO_NN = [
+  "Premissas Recebidas",
+  "Modelo Inicial",
+  "Contrato Offtakers",
+  "Contrato Fornecedores",
+  "Materiais Finais",
+];
