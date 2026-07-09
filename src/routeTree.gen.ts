@@ -21,6 +21,7 @@ import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedDocumentosRouteImport } from './routes/_authenticated/documentos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedComitesIndexRouteImport } from './routes/_authenticated/comites/index'
+import { Route as ApiPublicResetRenanRouteImport } from './routes/api/public/reset-renan'
 import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
 import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos/$id'
 import { Route as AuthenticatedComitesIdRouteImport } from './routes/_authenticated/comites/$id'
@@ -89,6 +90,11 @@ const AuthenticatedComitesIndexRoute =
     path: '/comites/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const ApiPublicResetRenanRoute = ApiPublicResetRenanRouteImport.update({
+  id: '/api/public/reset-renan',
+  path: '/api/public/reset-renan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
   id: '/api/public/bootstrap-admin',
   path: '/api/public/bootstrap-admin',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/comites/$id': typeof AuthenticatedComitesIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
+  '/api/public/reset-renan': typeof ApiPublicResetRenanRoute
   '/comites/': typeof AuthenticatedComitesIndexRoute
   '/api/public/hooks/notify-tarefas': typeof ApiPublicHooksNotifyTarefasRoute
 }
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/comites/$id': typeof AuthenticatedComitesIdRoute
   '/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
+  '/api/public/reset-renan': typeof ApiPublicResetRenanRoute
   '/comites': typeof AuthenticatedComitesIndexRoute
   '/api/public/hooks/notify-tarefas': typeof ApiPublicHooksNotifyTarefasRoute
 }
@@ -161,6 +169,7 @@ export interface FileRoutesById {
   '/_authenticated/comites/$id': typeof AuthenticatedComitesIdRoute
   '/_authenticated/projetos/$id': typeof AuthenticatedProjetosIdRoute
   '/api/public/bootstrap-admin': typeof ApiPublicBootstrapAdminRoute
+  '/api/public/reset-renan': typeof ApiPublicResetRenanRoute
   '/_authenticated/comites/': typeof AuthenticatedComitesIndexRoute
   '/api/public/hooks/notify-tarefas': typeof ApiPublicHooksNotifyTarefasRoute
 }
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/comites/$id'
     | '/projetos/$id'
     | '/api/public/bootstrap-admin'
+    | '/api/public/reset-renan'
     | '/comites/'
     | '/api/public/hooks/notify-tarefas'
   fileRoutesByTo: FileRoutesByTo
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/comites/$id'
     | '/projetos/$id'
     | '/api/public/bootstrap-admin'
+    | '/api/public/reset-renan'
     | '/comites'
     | '/api/public/hooks/notify-tarefas'
   id:
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/_authenticated/comites/$id'
     | '/_authenticated/projetos/$id'
     | '/api/public/bootstrap-admin'
+    | '/api/public/reset-renan'
     | '/_authenticated/comites/'
     | '/api/public/hooks/notify-tarefas'
   fileRoutesById: FileRoutesById
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   AceitarConviteRoute: typeof AceitarConviteRoute
   LoginRoute: typeof LoginRoute
   ApiPublicBootstrapAdminRoute: typeof ApiPublicBootstrapAdminRoute
+  ApiPublicResetRenanRoute: typeof ApiPublicResetRenanRoute
   ApiPublicHooksNotifyTarefasRoute: typeof ApiPublicHooksNotifyTarefasRoute
 }
 
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedComitesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/api/public/reset-renan': {
+      id: '/api/public/reset-renan'
+      path: '/api/public/reset-renan'
+      fullPath: '/api/public/reset-renan'
+      preLoaderRoute: typeof ApiPublicResetRenanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/bootstrap-admin': {
       id: '/api/public/bootstrap-admin'
       path: '/api/public/bootstrap-admin'
@@ -381,18 +401,9 @@ const rootRouteChildren: RootRouteChildren = {
   AceitarConviteRoute: AceitarConviteRoute,
   LoginRoute: LoginRoute,
   ApiPublicBootstrapAdminRoute: ApiPublicBootstrapAdminRoute,
+  ApiPublicResetRenanRoute: ApiPublicResetRenanRoute,
   ApiPublicHooksNotifyTarefasRoute: ApiPublicHooksNotifyTarefasRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
