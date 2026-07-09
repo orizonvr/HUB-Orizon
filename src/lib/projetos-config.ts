@@ -3,6 +3,7 @@ import {
   NN_ESTAGIOS,
   type ProjetoTipo,
 } from "@/lib/projetos-types";
+import { SETORES, SETORES_NN } from "@/lib/ma-utils";
 
 export type ExtraColumn = {
   key: "ebitda_alvo" | "multiplo_ev_ebitda" | "tir_estimada" | "payback_anos";
