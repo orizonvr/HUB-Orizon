@@ -369,6 +369,9 @@ function SheetBody({
                   />
                 </Field>
               </div>
+              <Field label="Próximos Passos">
+                <ProximosPassosReadOnly projetoId={projeto.id} />
+              </Field>
             </TabsContent>
 
             <TabsContent value="tarefas" className="mt-0">
