@@ -270,7 +270,9 @@ function SheetBody({
           <TabsTrigger value="fin">Financeiro</TabsTrigger>
           <TabsTrigger value="crono">Cronograma</TabsTrigger>
           <TabsTrigger value="docs">Documentos</TabsTrigger>
-          <TabsTrigger value="coms">Comentários</TabsTrigger>
+          {config.showComentarios && (
+            <TabsTrigger value="coms">Comentários</TabsTrigger>
+          )}
           <TabsTrigger value="ativ">Atividade</TabsTrigger>
         </TabsList>
 
