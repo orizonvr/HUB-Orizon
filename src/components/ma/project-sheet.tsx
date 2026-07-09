@@ -441,15 +441,21 @@ function SheetBody({
             </TabsContent>
 
             <TabsContent value="docs" className="mt-0">
-              <DocsTab projetoId={projeto.id} documentos={documentos} />
-            </TabsContent>
-
-            <TabsContent value="coms" className="mt-0">
-              <CommentsTab
+              <DocsTab
                 projetoId={projeto.id}
-                comentarios={comentarios}
+                documentos={documentos}
+                tipo={config.tipo}
               />
             </TabsContent>
+
+            {config.showComentarios && (
+              <TabsContent value="coms" className="mt-0">
+                <CommentsTab
+                  projetoId={projeto.id}
+                  comentarios={comentarios}
+                />
+              </TabsContent>
+            )}
 
             <TabsContent value="ativ" className="mt-0">
               <ActivityTab atividades={atividades} />
