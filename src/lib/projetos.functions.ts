@@ -221,7 +221,6 @@ const updatableFields = [
   "payback_anos",
   "capex_estimado",
   "receita_projetada_ano3",
-  "receita_projetada_ano3",
   "tam",
   "volume_ton_dia",
   "percentual_orizon",
