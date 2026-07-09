@@ -288,7 +288,7 @@ function SheetBody({
                     <SelectValue placeholder="Selecionar setor" />
                   </SelectTrigger>
                   <SelectContent>
-                    {SETORES.map((s) => (
+                    {config.setores.map((s) => (
                       <SelectItem key={s} value={s}>
                         {s}
                       </SelectItem>
