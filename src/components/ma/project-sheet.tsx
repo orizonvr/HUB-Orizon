@@ -669,7 +669,28 @@ function FinTab({
   if (config.finVariant === "nn") {
     return (
       <div className="space-y-5">
-        <OperationalMetrics projeto={projeto} save={save} />
+        <div className="space-y-2">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Métricas Operacionais
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <NumberField
+              label="Volume Ano 3"
+              value={projeto.volume_ton_dia}
+              onSave={(v) => save({ volume_ton_dia: v })}
+            />
+            <NumberField
+              label="Receita Líquida Ano 3"
+              value={projeto.receita_projetada_ano3}
+              onSave={(v) => save({ receita_projetada_ano3: v })}
+            />
+            <NumberField
+              label="EBITDA Ano 3"
+              value={projeto.ebitda_alvo}
+              onSave={(v) => save({ ebitda_alvo: v })}
+            />
+          </div>
+        </div>
         <Separator />
         <div className="space-y-2">
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -677,57 +698,42 @@ function FinTab({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <NumberField
-              label="Investimento estimado (R$)"
-              value={projeto.valor_estimado}
-              onSave={(v) => save({ valor_estimado: v })}
-            />
-            <NumberField
-              label="Capex estimado (R$)"
+              label="CAPEX Tecnologia (R$)"
               value={projeto.capex_estimado}
               onSave={(v) => save({ capex_estimado: v })}
             />
             <NumberField
-              label="Receita projetada ano 3 (R$)"
-              value={projeto.receita_projetada_ano3}
-              onSave={(v) => save({ receita_projetada_ano3: v })}
+              label="CAPEX Total Nominal (R$)"
+              value={projeto.valor_transacao_mm}
+              onSave={(v) => save({ valor_transacao_mm: v })}
             />
             <NumberField
-              label="TIR estimada (%)"
+              label="TIR Real Projeto (IPCA + %)"
               value={projeto.tir_estimada}
               onSave={(v) => save({ tir_estimada: v })}
             />
             <NumberField
-              label="Payback (anos)"
-              value={projeto.payback_anos}
-              onSave={(v) => save({ payback_anos: v })}
+              label="TIR Real Acionista (IPCA + %)"
+              value={projeto.percentual_orizon}
+              onSave={(v) => save({ percentual_orizon: v })}
             />
             <NumberField
-              label="TAM — Mercado endereçável (R$)"
+              label="Valor Presente — Taxa (%)"
+              value={projeto.multiplo_ev_ebitda}
+              onSave={(v) => save({ multiplo_ev_ebitda: v })}
+            />
+            <NumberField
+              label="Valor Presente — Valor (R$)"
               value={projeto.tam}
               onSave={(v) => save({ tam: v })}
             />
+            <NumberField
+              label="Payback (Anos)"
+              value={projeto.payback_anos}
+              onSave={(v) => save({ payback_anos: v })}
+            />
           </div>
         </div>
-        {projeto.tam && projeto.receita_projetada_ano3 ? (
-          <>
-            <Separator />
-            <div className="space-y-2 rounded-md bg-muted/40 p-3 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Share de TAM (ano 3)
-                </span>
-                <span className="font-semibold">
-                  {(
-                    (Number(projeto.receita_projetada_ano3) /
-                      Number(projeto.tam)) *
-                    100
-                  ).toFixed(2)}
-                  %
-                </span>
-              </div>
-            </div>
-          </>
-        ) : null}
       </div>
     );
   }
