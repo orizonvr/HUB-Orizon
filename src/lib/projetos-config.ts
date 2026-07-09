@@ -60,6 +60,10 @@ export const MA_CONFIG: ProjetoConfig = {
   ],
   finVariant: "ma",
   showTipoIniciativa: false,
+  setores: SETORES,
+  nomeLabel: "Codinome",
+  showComentarios: true,
+  showTeseNoForm: true,
 };
 
 export const NN_CONFIG: ProjetoConfig = {
