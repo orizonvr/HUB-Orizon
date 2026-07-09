@@ -400,20 +400,32 @@ function SheetBody({
                   rows={4}
                 />
               </Field>
-              <Field label="Próximos passos">
-                <InlineTextarea
-                  value={projeto.proximos_passos ?? ""}
-                  onSave={(v) => save({ proximos_passos: v })}
-                  rows={4}
-                />
-              </Field>
-              <Field label="Notas estratégicas">
-                <InlineTextarea
-                  value={projeto.notas_estrategicas ?? ""}
-                  onSave={(v) => save({ notas_estrategicas: v })}
-                  rows={6}
-                />
-              </Field>
+              {config.tipo === "novos_negocios" ? (
+                <Field label="Notas">
+                  <InlineTextarea
+                    value={projeto.notas_estrategicas ?? ""}
+                    onSave={(v) => save({ notas_estrategicas: v })}
+                    rows={6}
+                  />
+                </Field>
+              ) : (
+                <>
+                  <Field label="Próximos passos">
+                    <InlineTextarea
+                      value={projeto.proximos_passos ?? ""}
+                      onSave={(v) => save({ proximos_passos: v })}
+                      rows={4}
+                    />
+                  </Field>
+                  <Field label="Notas estratégicas">
+                    <InlineTextarea
+                      value={projeto.notas_estrategicas ?? ""}
+                      onSave={(v) => save({ notas_estrategicas: v })}
+                      rows={6}
+                    />
+                  </Field>
+                </>
+              )}
             </TabsContent>
 
             <TabsContent value="fin" className="mt-0 space-y-4">
