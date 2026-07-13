@@ -226,6 +226,15 @@ const updatableFields = [
   "percentual_orizon",
   "valor_transacao_mm",
   "notas_estrategicas",
+  "qualidade_informacoes",
+  "volume_ano3",
+  "ebitda_ano3",
+  "capex_tecnologia",
+  "capex_total_nominal",
+  "tir_real_projeto",
+  "tir_real_acionista",
+  "vpl_taxa",
+  "vpl_valor",
 ] as const;
 
 const updateSchema = z.object({
