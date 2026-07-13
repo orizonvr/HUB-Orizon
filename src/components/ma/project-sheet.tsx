@@ -244,9 +244,9 @@ function SheetBody({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(STATUS_LABEL).map(([k, l]) => (
+              {STATUS_POR_TIPO[projeto.tipo].map((k) => (
                 <SelectItem key={k} value={k}>
-                  {l}
+                  {STATUS_LABEL[k] ?? k}
                 </SelectItem>
               ))}
             </SelectContent>
