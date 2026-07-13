@@ -382,9 +382,9 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
               value={filterStatus}
               onChange={setFilterStatus}
               placeholder="Status"
-              options={Object.entries(STATUS_LABEL).map(([v, l]) => ({
+              options={STATUS_POR_TIPO[config.tipo].map((v) => ({
                 value: v,
-                label: l,
+                label: STATUS_LABEL[v] ?? v,
               }))}
             />
             <div className="flex items-center gap-1">
