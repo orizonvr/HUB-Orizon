@@ -133,6 +133,7 @@ export const STATUS_LABEL: Record<string, string> = {
   concluido: "Concluído",
   arquivado: "Arquivado",
   perdido: "Perdido",
+  cancelado: "Cancelado",
 };
 
 export const TIPO_DOCUMENTO = ["NDA", "IIM", "DD Financeira", "SPA", "Outro"];

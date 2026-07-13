@@ -14,12 +14,14 @@ export const MA_ESTAGIOS = [
 ] as const;
 
 export const NN_ESTAGIOS = [
-  { key: "analise_viabilidade", label: "Discussões Iniciais" },
+  { key: "discussoes_iniciais", label: "Discussões Iniciais" },
+  { key: "modelagem_inicial", label: "Modelagem Inicial" },
   { key: "discussoes_offtaker", label: "Discussões com Offtaker" },
-  { key: "negociacao", label: "Discussões com Fornecedores" },
-  { key: "aprovacao_comite", label: "Materiais Finais" },
+  { key: "discussoes_fornecedores", label: "Discussões com Fornecedores" },
+  { key: "materiais_finais", label: "Materiais Finais" },
   { key: "implementacao", label: "Implementação" },
   { key: "operacao", label: "Operação" },
+  { key: "paralisados", label: "Paralisados" },
 ] as const;
 
 export const SUBCATEGORIAS = [
@@ -72,7 +74,7 @@ export type Projeto = {
   subcategoria: string | null;
   status_detalhado: string | null;
   estagio: string;
-  status: "ativo" | "pausado" | "concluido" | "arquivado" | "perdido";
+  status: "ativo" | "pausado" | "concluido" | "arquivado" | "perdido" | "cancelado";
   descricao: string | null;
   tese: string | null;
   riscos: string | null;
@@ -91,6 +93,15 @@ export type Projeto = {
   percentual_orizon: number | null;
   valor_transacao_mm: number | null;
   notas_estrategicas: string | null;
+  qualidade_informacoes: string | null;
+  volume_ano3: number | null;
+  ebitda_ano3: number | null;
+  capex_tecnologia: number | null;
+  capex_total_nominal: number | null;
+  tir_real_projeto: number | null;
+  tir_real_acionista: number | null;
+  vpl_taxa: number | null;
+  vpl_valor: number | null;
   responsavel_id: string | null;
   lider_id: string | null;
   data_inicio: string | null;
