@@ -74,7 +74,7 @@ export type Projeto = {
   subcategoria: string | null;
   status_detalhado: string | null;
   estagio: string;
-  status: "ativo" | "pausado" | "concluido" | "arquivado" | "perdido";
+  status: "ativo" | "pausado" | "concluido" | "arquivado" | "perdido" | "cancelado";
   descricao: string | null;
   tese: string | null;
   riscos: string | null;
