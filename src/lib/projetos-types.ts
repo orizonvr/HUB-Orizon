@@ -93,6 +93,15 @@ export type Projeto = {
   percentual_orizon: number | null;
   valor_transacao_mm: number | null;
   notas_estrategicas: string | null;
+  qualidade_informacoes: string | null;
+  volume_ano3: number | null;
+  ebitda_ano3: number | null;
+  capex_tecnologia: number | null;
+  capex_total_nominal: number | null;
+  tir_real_projeto: number | null;
+  tir_real_acionista: number | null;
+  vpl_taxa: number | null;
+  vpl_valor: number | null;
   responsavel_id: string | null;
   lider_id: string | null;
   data_inicio: string | null;
