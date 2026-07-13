@@ -71,7 +71,7 @@ export const NN_CONFIG: ProjetoConfig = {
   titulo: "Novos Negócios",
   subtituloSuffix: "em investimento",
   estagios: NN_ESTAGIOS,
-  estagioInicial: "analise_viabilidade",
+  estagioInicial: "discussoes_iniciais",
   estagioLabels: labelsFor(NN_ESTAGIOS),
   queryKey: "nn-projetos",
   csvPrefix: "novos-negocios",
