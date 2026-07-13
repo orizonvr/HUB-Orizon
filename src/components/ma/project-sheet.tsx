@@ -674,10 +674,25 @@ function FinTab({
             Métricas Operacionais
           </div>
           <div className="grid grid-cols-2 gap-3">
+            <Field label="Qualidade das Informações">
+              <Select
+                value={projeto.qualidade_informacoes ?? ""}
+                onValueChange={(v) => save({ qualidade_informacoes: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="alta">Alta</SelectItem>
+                  <SelectItem value="media">Média</SelectItem>
+                  <SelectItem value="baixa">Baixa</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
             <NumberField
               label="Volume Ano 3"
-              value={projeto.volume_ton_dia}
-              onSave={(v) => save({ volume_ton_dia: v })}
+              value={projeto.volume_ano3}
+              onSave={(v) => save({ volume_ano3: v })}
             />
             <NumberField
               label="Receita Líquida Ano 3"
@@ -686,8 +701,8 @@ function FinTab({
             />
             <NumberField
               label="EBITDA Ano 3"
-              value={projeto.ebitda_alvo}
-              onSave={(v) => save({ ebitda_alvo: v })}
+              value={projeto.ebitda_ano3}
+              onSave={(v) => save({ ebitda_ano3: v })}
             />
           </div>
         </div>
@@ -699,33 +714,33 @@ function FinTab({
           <div className="grid grid-cols-2 gap-3">
             <NumberField
               label="CAPEX Tecnologia (R$)"
-              value={projeto.capex_estimado}
-              onSave={(v) => save({ capex_estimado: v })}
+              value={projeto.capex_tecnologia}
+              onSave={(v) => save({ capex_tecnologia: v })}
             />
             <NumberField
               label="CAPEX Total Nominal (R$)"
-              value={projeto.valor_transacao_mm}
-              onSave={(v) => save({ valor_transacao_mm: v })}
+              value={projeto.capex_total_nominal}
+              onSave={(v) => save({ capex_total_nominal: v })}
             />
             <NumberField
               label="TIR Real Projeto (IPCA + %)"
-              value={projeto.tir_estimada}
-              onSave={(v) => save({ tir_estimada: v })}
+              value={projeto.tir_real_projeto}
+              onSave={(v) => save({ tir_real_projeto: v })}
             />
             <NumberField
               label="TIR Real Acionista (IPCA + %)"
-              value={projeto.percentual_orizon}
-              onSave={(v) => save({ percentual_orizon: v })}
+              value={projeto.tir_real_acionista}
+              onSave={(v) => save({ tir_real_acionista: v })}
             />
             <NumberField
               label="Valor Presente — Taxa (%)"
-              value={projeto.multiplo_ev_ebitda}
-              onSave={(v) => save({ multiplo_ev_ebitda: v })}
+              value={projeto.vpl_taxa}
+              onSave={(v) => save({ vpl_taxa: v })}
             />
             <NumberField
               label="Valor Presente — Valor (R$)"
-              value={projeto.tam}
-              onSave={(v) => save({ tam: v })}
+              value={projeto.vpl_valor}
+              onSave={(v) => save({ vpl_valor: v })}
             />
             <NumberField
               label="Payback (Anos)"
