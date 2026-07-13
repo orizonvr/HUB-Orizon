@@ -14,12 +14,14 @@ export const MA_ESTAGIOS = [
 ] as const;
 
 export const NN_ESTAGIOS = [
-  { key: "analise_viabilidade", label: "Discussões Iniciais" },
+  { key: "discussoes_iniciais", label: "Discussões Iniciais" },
+  { key: "modelagem_inicial", label: "Modelagem Inicial" },
   { key: "discussoes_offtaker", label: "Discussões com Offtaker" },
-  { key: "negociacao", label: "Discussões com Fornecedores" },
-  { key: "aprovacao_comite", label: "Materiais Finais" },
+  { key: "discussoes_fornecedores", label: "Discussões com Fornecedores" },
+  { key: "materiais_finais", label: "Materiais Finais" },
   { key: "implementacao", label: "Implementação" },
   { key: "operacao", label: "Operação" },
+  { key: "paralisados", label: "Paralisados" },
 ] as const;
 
 export const SUBCATEGORIAS = [
