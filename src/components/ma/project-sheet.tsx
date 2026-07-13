@@ -59,6 +59,7 @@ import {
   initials,
   MA_ESTAGIO_LABEL,
   STATUS_LABEL,
+  STATUS_POR_TIPO,
   TIPO_DOCUMENTO,
   TIPO_DOCUMENTO_NN,
 } from "@/lib/ma-utils";
@@ -244,9 +245,9 @@ function SheetBody({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {Object.entries(STATUS_LABEL).map(([k, l]) => (
+              {STATUS_POR_TIPO[projeto.tipo].map((k) => (
                 <SelectItem key={k} value={k}>
-                  {l}
+                  {STATUS_LABEL[k] ?? k}
                 </SelectItem>
               ))}
             </SelectContent>

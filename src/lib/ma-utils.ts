@@ -136,6 +136,11 @@ export const STATUS_LABEL: Record<string, string> = {
   cancelado: "Cancelado",
 };
 
+export const STATUS_POR_TIPO: Record<"ma" | "novos_negocios", string[]> = {
+  ma: ["ativo", "pausado", "concluido", "arquivado", "perdido"],
+  novos_negocios: ["ativo", "pausado", "concluido", "cancelado"],
+};
+
 export const TIPO_DOCUMENTO = ["NDA", "IIM", "DD Financeira", "SPA", "Outro"];
 
 export const TIPO_DOCUMENTO_NN = [
