@@ -83,6 +83,7 @@ import {
   initials,
   SETORES,
   STATUS_LABEL,
+  STATUS_POR_TIPO,
 } from "@/lib/ma-utils";
 import {
   formatExtra,
