@@ -59,6 +59,7 @@ import {
   initials,
   MA_ESTAGIO_LABEL,
   STATUS_LABEL,
+  STATUS_POR_TIPO,
   TIPO_DOCUMENTO,
   TIPO_DOCUMENTO_NN,
 } from "@/lib/ma-utils";
