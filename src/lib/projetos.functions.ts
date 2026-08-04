@@ -235,6 +235,7 @@ const updatableFields = [
   "tir_real_acionista",
   "vpl_taxa",
   "vpl_valor",
+  "periodo_total_anos",
 ] as const;
 
 const updateSchema = z.object({
