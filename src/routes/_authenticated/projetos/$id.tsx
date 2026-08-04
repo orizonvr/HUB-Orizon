@@ -140,7 +140,7 @@ function buildDossieMd(args: {
   L.push(`- **% Orizon:** ${formatPercentOrizon(p.percentual_orizon) ?? DASH}`);
   L.push(`- **Início:** ${formatAbsolute(p.data_inicio)}`);
   L.push(`- **Fechamento previsto:** ${formatAbsolute(p.data_fechamento_prevista)}`);
-  L.push(`- **Fechamento real:** ${formatAbsolute(p.data_fechamento_real)}`);
+  L.push(`- **Fechamento Realizado:** ${formatAbsolute(p.data_fechamento_real)}`);
   if (p.status_detalhado) L.push(`- **Status detalhado:** ${p.status_detalhado}`);
   L.push("");
   if (p.tese?.trim()) {
@@ -375,7 +375,7 @@ function DossiePage() {
           <Info label="% Orizon" value={formatPercentOrizon(projeto.percentual_orizon) ?? DASH} />
           <Info label="Início" value={formatAbsolute(projeto.data_inicio)} />
           <Info label="Fechamento previsto" value={formatAbsolute(projeto.data_fechamento_prevista)} />
-          <Info label="Fechamento real" value={formatAbsolute(projeto.data_fechamento_real)} />
+          <Info label="Fechamento Realizado" value={formatAbsolute(projeto.data_fechamento_real)} />
           {projeto.status_detalhado && (
             <Info label="Status detalhado" value={projeto.status_detalhado} />
           )}

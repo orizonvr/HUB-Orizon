@@ -358,7 +358,7 @@ function SheetBody({
                     }
                   />
                 </Field>
-                <Field label="Fechamento real">
+                <Field label="Fechamento Realizado">
                   <Input
                     type="date"
                     defaultValue={projeto.data_fechamento_real ?? ""}
@@ -691,17 +691,17 @@ function FinTab({
               </Select>
             </Field>
             <NumberField
-              label="Volume Ano 3"
+              label="Volume Total (unid.)"
               value={projeto.volume_ano3}
               onSave={(v) => save({ volume_ano3: v })}
             />
             <NumberField
-              label="Receita Líquida Ano 3"
+              label="Receita Líquida Total (R$)"
               value={projeto.receita_projetada_ano3}
               onSave={(v) => save({ receita_projetada_ano3: v })}
             />
             <NumberField
-              label="EBITDA Ano 3"
+              label="EBITDA Total (R$)"
               value={projeto.ebitda_ano3}
               onSave={(v) => save({ ebitda_ano3: v })}
             />
@@ -714,12 +714,7 @@ function FinTab({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <NumberField
-              label="CAPEX Tecnologia (R$)"
-              value={projeto.capex_tecnologia}
-              onSave={(v) => save({ capex_tecnologia: v })}
-            />
-            <NumberField
-              label="CAPEX Total Nominal (R$)"
+              label="CAPEX Total Projeto (R$)"
               value={projeto.capex_total_nominal}
               onSave={(v) => save({ capex_total_nominal: v })}
             />
@@ -734,7 +729,7 @@ function FinTab({
               onSave={(v) => save({ tir_real_acionista: v })}
             />
             <NumberField
-              label="Valor Presente — Taxa (%)"
+              label="Valor Presente — Taxa (IPCA + %)"
               value={projeto.vpl_taxa}
               onSave={(v) => save({ vpl_taxa: v })}
             />
@@ -747,6 +742,11 @@ function FinTab({
               label="Payback (Anos)"
               value={projeto.payback_anos}
               onSave={(v) => save({ payback_anos: v })}
+            />
+            <NumberField
+              label="Período Total do Projeto (anos)"
+              value={projeto.periodo_total_anos}
+              onSave={(v) => save({ periodo_total_anos: v })}
             />
           </div>
         </div>
@@ -1171,12 +1171,30 @@ function ProximosPassosReadOnly({ projetoId }: { projetoId: string }) {
     queryKey: ["tarefas-projeto", projetoId],
     queryFn: () => listFn({ data: { projeto_id: projetoId } }),
   });
-  const proxima = (q.data?.tarefas ?? []).find(
-    (t) => t.status !== "concluida",
+  const abertas = (q.data?.tarefas ?? []).filter(
+    (t) => t.status !== "concluida" && t.status !== "cancelada",
   );
+  if (q.isLoading) {
+    return <div className="text-sm text-muted-foreground">Carregando...</div>;
+  }
+  if (abertas.length === 0) {
+    return <div className="text-sm text-muted-foreground">—</div>;
+  }
   return (
-    <div className="text-sm text-muted-foreground">
-      {q.isLoading ? "Carregando..." : proxima?.titulo ?? "—"}
-    </div>
+    <ul className="space-y-1">
+      {abertas.map((t) => (
+        <li
+          key={t.id}
+          className="flex items-start justify-between gap-2 text-sm"
+        >
+          <span className="text-foreground">{t.titulo}</span>
+          {t.prazo && t.prazo !== "2099-12-31" && (
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {new Date(t.prazo + "T12:00:00").toLocaleDateString("pt-BR")}
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
