@@ -156,12 +156,30 @@ export const getDashboardData = createServerFn({ method: "POST" })
     const { start, end } = quarterRange();
     const tipoFilter = data.tipo;
 
-    const { data: projetos, error: projErr } = await supabaseAdmin
+    type ProjRow = {
+      id: string;
+      tipo: "ma" | "novos_negocios";
+      nome: string;
+      estagio: string;
+      status: string;
+      subcategoria: string | null;
+      valor_estimado: number | null;
+      volume_ton_dia: number | null;
+      ebitda_2025: number | null;
+      capex_total_nominal: number | null;
+      receita_projetada_ano3: number | null;
+      ebitda_ano3: number | null;
+      data_fechamento_prevista: string | null;
+      criado_em: string;
+      atualizado_em: string;
+      responsavel_id: string | null;
+    };
+
+    const { data: projetosRaw, error: projErr } = await supabaseAdmin
       .from("projetos")
-      .select(
-        "id, tipo, nome, estagio, status, subcategoria, valor_estimado, volume_ton_dia, ebitda_2025, capex_total_nominal, receita_projetada_ano3, ebitda_ano3, data_fechamento_prevista, criado_em, atualizado_em, responsavel_id",
-      );
+      .select("*");
     if (projErr) throw new Error(projErr.message);
+    const projetos = (projetosRaw ?? []) as unknown as ProjRow[];
 
     const filtered = (projetos ?? []).filter(
       (p) => tipoFilter === "tudo" || p.tipo === tipoFilter,
