@@ -437,6 +437,7 @@ export type Database = {
           notas_estrategicas: string | null
           payback_anos: number | null
           percentual_orizon: number | null
+          periodo_total_anos: number | null
           proximos_passos: string | null
           receita_projetada_ano3: number | null
           responsavel_id: string | null
@@ -473,6 +474,7 @@ export type Database = {
           notas_estrategicas?: string | null
           payback_anos?: number | null
           percentual_orizon?: number | null
+          periodo_total_anos?: number | null
           proximos_passos?: string | null
           receita_projetada_ano3?: number | null
           responsavel_id?: string | null
@@ -509,6 +511,7 @@ export type Database = {
           notas_estrategicas?: string | null
           payback_anos?: number | null
           percentual_orizon?: number | null
+          periodo_total_anos?: number | null
           proximos_passos?: string | null
           receita_projetada_ano3?: number | null
           responsavel_id?: string | null

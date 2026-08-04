@@ -144,8 +144,8 @@ export const STATUS_POR_TIPO: Record<"ma" | "novos_negocios", string[]> = {
 export const TIPO_DOCUMENTO = ["NDA", "IIM", "DD Financeira", "SPA", "Outro"];
 
 export const TIPO_DOCUMENTO_NN = [
-  "Premissas Recebidas",
-  "Modelo Inicial",
+  "Informações Recebidas",
+  "Materiais Iniciais",
   "Contrato Offtakers",
   "Contrato Fornecedores",
   "Materiais Finais",

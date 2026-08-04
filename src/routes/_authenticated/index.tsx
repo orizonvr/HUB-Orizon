@@ -170,9 +170,25 @@ function DashboardPage() {
     {
       label: "Pipeline agregado",
       value: data ? formatCurrencyShort(data.kpis.pipelineAgregado) : "—",
-      hint: "Valor potencial total",
+      hint:
+        tipo === "novos_negocios"
+          ? "CAPEX Total Projeto (ativos)"
+          : "Valor potencial total",
       icon: TrendingUp,
     },
+    ...(tipo === "novos_negocios"
+      ? [{
+          label: "Receita Líquida Total",
+          value: data ? formatCurrencyShort(data.kpis.receitaLiquidaNnTotal) : "—",
+          hint: "Soma dos projetos ativos",
+          icon: TrendingUp,
+        }, {
+          label: "EBITDA Total",
+          value: data ? formatCurrencyShort(data.kpis.ebitdaNnTotal) : "—",
+          hint: "Soma dos projetos ativos",
+          icon: Gauge,
+        }]
+      : []),
     ...((tipo === "tudo" || tipo === "ma")
       ? [{
           label: "Volume pipeline M&A",

@@ -102,6 +102,7 @@ export type Projeto = {
   tir_real_acionista: number | null;
   vpl_taxa: number | null;
   vpl_valor: number | null;
+  periodo_total_anos: number | null;
   responsavel_id: string | null;
   lider_id: string | null;
   data_inicio: string | null;

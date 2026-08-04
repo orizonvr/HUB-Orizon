@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   useSuspenseQuery,
@@ -615,9 +615,46 @@ function KanbanView({
     return map;
   }, [projetos, config.estagios]);
 
+  const topRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [scrollWidth, setScrollWidth] = useState(0);
+  const syncing = useRef<"top" | "body" | null>(null);
+
+  useEffect(() => {
+    const measure = () => setScrollWidth(innerRef.current?.scrollWidth ?? 0);
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [projetos, config.estagios]);
+
+  const onTopScroll = () => {
+    if (syncing.current === "body") return (syncing.current = null), undefined;
+    syncing.current = "top";
+    if (bodyRef.current && topRef.current)
+      bodyRef.current.scrollLeft = topRef.current.scrollLeft;
+    return undefined;
+  };
+  const onBodyScroll = () => {
+    if (syncing.current === "top") return (syncing.current = null), undefined;
+    syncing.current = "body";
+    if (topRef.current && bodyRef.current)
+      topRef.current.scrollLeft = bodyRef.current.scrollLeft;
+    return undefined;
+  };
+
   return (
-    <div className="overflow-x-auto pb-4">
-      <div className="flex gap-3 min-w-max">
+    <div>
+      <div
+        ref={topRef}
+        onScroll={onTopScroll}
+        className="overflow-x-auto overflow-y-hidden mb-2 rounded-full bg-muted/40"
+        style={{ height: 12 }}
+      >
+        <div style={{ width: scrollWidth, height: 1 }} />
+      </div>
+      <div ref={bodyRef} onScroll={onBodyScroll} className="overflow-x-auto pb-4">
+      <div ref={innerRef} className="flex gap-3 min-w-max">
         {config.estagios.map((s) => {
           const items = byStage[s.key] ?? [];
           const sum = items.reduce(
@@ -666,6 +703,7 @@ function KanbanView({
           );
         })}
       </div>
+      </div>
     </div>
   );
 }
@@ -691,8 +729,18 @@ function KanbanCard({
       className="p-3 cursor-pointer hover:shadow-md transition-shadow"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="font-semibold text-sm leading-tight">
-          {projeto.nome}
+        <div className="min-w-0">
+          <div className="font-semibold text-sm leading-tight">
+            {projeto.nome}
+          </div>
+          {projeto.tipo === "novos_negocios" && (
+            <Badge
+              variant="outline"
+              className="mt-1 text-[9px] py-0 px-1.5 leading-tight"
+            >
+              {STATUS_LABEL[projeto.status] ?? projeto.status}
+            </Badge>
+          )}
         </div>
         <div className="flex items-center gap-1.5 mt-1 flex-shrink-0">
           {projeto.tipo === "ma" &&
@@ -1240,8 +1288,15 @@ function CardsView({
             </div>
             <div className="flex items-start justify-between gap-2">
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-base truncate">
-                  {p.nome}
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="font-semibold text-base truncate">
+                    {p.nome}
+                  </div>
+                  {p.tipo === "novos_negocios" && (
+                    <Badge variant="outline" className="shrink-0 text-[10px] py-0">
+                      {STATUS_LABEL[p.status] ?? p.status}
+                    </Badge>
+                  )}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">
                   {p.contraparte ?? "—"}
