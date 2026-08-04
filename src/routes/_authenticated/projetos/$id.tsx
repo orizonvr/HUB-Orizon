@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Copy, Download } from "lucide-react";
+import { useState } from "react";
+import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Copy, Download, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -32,6 +33,8 @@ import {
 } from "@/lib/format";
 import { SUBCATEGORIA_LABEL, type Projeto, type Profile } from "@/lib/projetos-types";
 import type { TarefaComContexto } from "@/lib/tarefas-types";
+import { NovaTarefaDialog } from "@/components/tarefas/nova-tarefa-dialog";
+import { useTarefaDrawer } from "@/hooks/use-tarefa-drawer";
 
 export const Route = createFileRoute("/_authenticated/projetos/$id")({
   head: () => ({ meta: [{ title: "Dossiê do projeto — OrizonVR" }] }),
@@ -208,6 +211,9 @@ function buildDossieMd(args: {
 function DossiePage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { openTarefa } = useTarefaDrawer();
+  const [novaTarefaOpen, setNovaTarefaOpen] = useState(false);
 
   const detailFn = useServerFn(getProjetoDetail);
   const tarefasFn = useServerFn(listTarefasByProjeto);
@@ -408,12 +414,27 @@ function DossiePage() {
 
       {/* Tarefas abertas */}
       <Card className="p-5">
-        <h2 className="text-sm font-semibold">
-          Tarefas abertas{" "}
-          <span className="ml-1 text-xs font-normal text-muted-foreground">
-            ({tarefasAbertas.length})
-          </span>
-        </h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold">
+            Tarefas abertas{" "}
+            <span className="ml-1 text-xs font-normal text-muted-foreground">
+              ({tarefasAbertas.length})
+            </span>
+          </h2>
+          <Button size="sm" variant="outline" onClick={() => setNovaTarefaOpen(true)}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" />
+            Nova tarefa
+          </Button>
+        </div>
+        <NovaTarefaDialog
+          open={novaTarefaOpen}
+          onOpenChange={(o) => {
+            setNovaTarefaOpen(o);
+            if (!o) qc.invalidateQueries({ queryKey: ["tarefas-projeto", id] });
+          }}
+          profiles={profiles}
+          projetoFixo={{ id: projeto.id, nome: projeto.nome }}
+        />
         {tarefasAbertas.length === 0 ? (
           <p className="mt-4 text-sm text-muted-foreground">Nenhuma tarefa aberta.</p>
         ) : (
@@ -421,7 +442,8 @@ function DossiePage() {
             {tarefasAbertas.map((t) => (
               <li
                 key={t.id}
-                className="flex flex-col gap-1 border-b border-border/40 pb-3 last:border-0 last:pb-0"
+                onClick={() => openTarefa(t.id)}
+                className="flex cursor-pointer flex-col gap-1 border-b border-border/40 pb-3 last:border-0 last:pb-0 hover:opacity-80"
               >
                 <div className="flex items-start justify-between gap-3">
                   <span className="text-sm font-medium">{t.titulo}</span>
