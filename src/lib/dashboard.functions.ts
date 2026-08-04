@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { NN_ESTAGIOS } from "@/lib/projetos-types";
 
 export type TipoFiltro = "tudo" | "ma" | "novos_negocios";
 
@@ -12,6 +13,8 @@ export type DashboardKpis = {
   closingsTrimestre: number;
   volumeMaTotal: number;
   ebitda2025MaTotal: number;
+  receitaLiquidaNnTotal: number;
+  ebitdaNnTotal: number;
 };
 
 export type PipelineStageItem = {
@@ -101,13 +104,16 @@ const MA_STAGES = [
   { key: "pos_ma_integracao", label: "Pós-M&A / Integração" },
 ];
 
-const NN_STAGES = [
-  { key: "analise_viabilidade", label: "Análise de Viabilidade" },
-  { key: "discussoes_offtaker", label: "Discussões com Offtaker" },
-  { key: "negociacao", label: "Negociação" },
-  { key: "aprovacao_comite", label: "Aprovação Comitê" },
-  { key: "implementacao", label: "Implementação" },
-  { key: "operacao", label: "Operação" },
+const NN_STAGES = NN_ESTAGIOS.map((s) => ({ key: s.key as string, label: s.label as string }));
+
+// Barras exibidas no dashboard quando o filtro é Novos Negócios.
+const NN_BUCKETS: Array<{ label: string; keys: string[] }> = [
+  { label: "Discussões Iniciais", keys: ["discussoes_iniciais"] },
+  { label: "Modelagem Inicial", keys: ["modelagem_inicial"] },
+  { label: "Discussões com Offtaker", keys: ["discussoes_offtaker"] },
+  { label: "Discussões com Fornecedores", keys: ["discussoes_fornecedores"] },
+  { label: "Materiais Finais", keys: ["materiais_finais"] },
+  { label: "Implementação / Operação", keys: ["implementacao", "operacao"] },
 ];
 
 const SUBCAT_LABELS: Record<string, string> = {
@@ -121,10 +127,10 @@ const SUBCAT_LABELS: Record<string, string> = {
 };
 
 const CONSOLIDATED_BUCKETS: Array<{ label: string; ma: string[]; nn: string[] }> = [
-  { label: "Originação", ma: ["analise_inicial", "nda_preenchimento", "nda_assinado"], nn: ["analise_viabilidade"] },
-  { label: "Proposta / Offtaker", ma: ["elaborando_nbo", "nbo_submetida"], nn: ["discussoes_offtaker"] },
-  { label: "Due Diligence / Comitê", ma: ["due_diligence"], nn: ["aprovacao_comite"] },
-  { label: "Negociação", ma: ["negociacao", "opcao_compra_assinada", "assinatura_spa"], nn: ["negociacao"] },
+  { label: "Originação", ma: ["analise_inicial", "nda_preenchimento", "nda_assinado"], nn: ["discussoes_iniciais", "modelagem_inicial"] },
+  { label: "Proposta / Offtaker", ma: ["elaborando_nbo", "nbo_submetida"], nn: ["discussoes_offtaker", "discussoes_fornecedores"] },
+  { label: "Due Diligence / Comitê", ma: ["due_diligence"], nn: [] },
+  { label: "Negociação", ma: ["negociacao", "opcao_compra_assinada", "assinatura_spa"], nn: ["materiais_finais"] },
   { label: "Implementação / Operação", ma: ["pos_ma_integracao"], nn: ["implementacao", "operacao"] },
 ];
 
@@ -153,7 +159,7 @@ export const getDashboardData = createServerFn({ method: "POST" })
     const { data: projetos, error: projErr } = await supabaseAdmin
       .from("projetos")
       .select(
-        "id, tipo, nome, estagio, status, subcategoria, valor_estimado, volume_ton_dia, ebitda_2025, data_fechamento_prevista, criado_em, atualizado_em, responsavel_id",
+        "id, tipo, nome, estagio, status, subcategoria, valor_estimado, volume_ton_dia, ebitda_2025, capex_total_nominal, receita_projetada_ano3, ebitda_ano3, data_fechamento_prevista, criado_em, atualizado_em, responsavel_id",
       );
     if (projErr) throw new Error(projErr.message);
 
@@ -164,7 +170,10 @@ export const getDashboardData = createServerFn({ method: "POST" })
 
     const kpis: DashboardKpis = {
       transacoesAtivas: ativos.length,
-      pipelineAgregado: ativos.reduce((s, p) => s + Number(p.valor_estimado ?? 0), 0),
+      pipelineAgregado:
+        tipoFilter === "novos_negocios"
+          ? ativos.reduce((s, p) => s + Number(p.capex_total_nominal ?? 0), 0)
+          : ativos.reduce((s, p) => s + Number(p.valor_estimado ?? 0), 0),
       emDueDiligence: ativos.filter(
         (p) => p.estagio === "due_diligence" || p.estagio === "aprovacao_comite",
       ).length,
@@ -177,9 +186,29 @@ export const getDashboardData = createServerFn({ method: "POST" })
       ebitda2025MaTotal: ativos
         .filter((p) => p.tipo === "ma")
         .reduce((s, p) => s + Number(p.ebitda_2025 ?? 0), 0),
+      receitaLiquidaNnTotal: ativos
+        .filter((p) => p.tipo === "novos_negocios")
+        .reduce((s, p) => s + Number(p.receita_projetada_ano3 ?? 0), 0),
+      ebitdaNnTotal: ativos
+        .filter((p) => p.tipo === "novos_negocios")
+        .reduce((s, p) => s + Number(p.ebitda_ano3 ?? 0), 0),
     };
 
-    const pipeline: PipelineStageItem[] = CONSOLIDATED_BUCKETS.map((b) => {
+    const pipeline: PipelineStageItem[] =
+      tipoFilter === "novos_negocios"
+        ? NN_BUCKETS.map((b) => {
+            const matching = ativos.filter((p) => b.keys.includes(p.estagio));
+            return {
+              stage: b.label,
+              label: b.label,
+              value: matching.length,
+              amount: matching.reduce(
+                (s, p) => s + Number(p.capex_total_nominal ?? 0),
+                0,
+              ),
+            };
+          })
+        : CONSOLIDATED_BUCKETS.map((b) => {
       const matching = ativos.filter(
         (p) =>
           (p.tipo === "ma" && b.ma.includes(p.estagio)) ||
