@@ -60,7 +60,7 @@ export const listProjetosByTipo = createServerFn({ method: "POST" })
       .eq("tipo", data.tipo)
       .order("atualizado_em", { ascending: false });
     if (error) throw new Error(error.message);
-    return { projetos: (rows ?? []) as Projeto[] };
+    return { projetos: (rows ?? []) as unknown as Projeto[] };
   });
 
 export const listMaProjetos = createServerFn({ method: "GET" })
@@ -72,7 +72,7 @@ export const listMaProjetos = createServerFn({ method: "GET" })
       .eq("tipo", "ma")
       .order("atualizado_em", { ascending: false });
     if (error) throw new Error(error.message);
-    return { projetos: (data ?? []) as Projeto[] };
+    return { projetos: (data ?? []) as unknown as Projeto[] };
   });
 
 export const listProfiles = createServerFn({ method: "GET" })
@@ -120,7 +120,7 @@ export const getProjetoDetail = createServerFn({ method: "GET" })
     );
 
     return {
-      projeto: proj.data as Projeto,
+      projeto: proj.data as unknown as Projeto,
       comentarios: ((coms.data ?? []) as Array<Omit<Comentario, "autor_nome">>).map(
         (c) => ({ ...c, autor_nome: nameMap.get(c.autor_id) ?? "—" }),
       ) as Comentario[],
@@ -191,7 +191,7 @@ export const createProjeto = createServerFn({ method: "POST" })
       detalhes: { nome: data.nome, estagio: data.estagio, tipo: data.tipo },
     });
 
-    return { projeto: inserted as Projeto };
+    return { projeto: inserted as unknown as Projeto };
   });
 
 // ---------- UPDATE ----------
