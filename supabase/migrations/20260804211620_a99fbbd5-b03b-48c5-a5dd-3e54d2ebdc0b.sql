@@ -1,0 +1,1 @@
+ALTER TABLE public.projetos ADD COLUMN IF NOT EXISTS periodo_total_anos numeric NULL;
