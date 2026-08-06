@@ -105,8 +105,18 @@ export function ProjectSheet({ config, projectId, initialTab, profiles, onClose 
 
   const save = (patch: Record<string, unknown>) => updateMut.mutate(patch);
 
+  const [nestedCount, setNestedCount] = useState(0);
+  const registerNested = useCallback(
+    (delta: number) => setNestedCount((c) => Math.max(0, c + delta)),
+    [],
+  );
+
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+    <Sheet
+      open={open}
+      onOpenChange={(o) => !o && onClose()}
+      modal={nestedCount === 0}
+    >
       <SheetContent
         side="right"
         className="w-full sm:max-w-2xl flex flex-col p-0 gap-0"
@@ -116,18 +126,19 @@ export function ProjectSheet({ config, projectId, initialTab, profiles, onClose 
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <SheetBody
-            config={config}
-            data={detail.data}
-            initialTab={initialTab}
-            profiles={profiles}
-            save={save}
-            onDeleted={() => {
-              onClose();
-              qc.invalidateQueries({ queryKey: [config.queryKey] });
-            }}
-          />
-
+          <NestedModalContext.Provider value={registerNested}>
+            <SheetBody
+              config={config}
+              data={detail.data}
+              initialTab={initialTab}
+              profiles={profiles}
+              save={save}
+              onDeleted={() => {
+                onClose();
+                qc.invalidateQueries({ queryKey: [config.queryKey] });
+              }}
+            />
+          </NestedModalContext.Provider>
         )}
       </SheetContent>
     </Sheet>
