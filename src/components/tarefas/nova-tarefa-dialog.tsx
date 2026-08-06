@@ -66,6 +66,7 @@ export function NovaTarefaDialog({
   defaultResponsavelId,
   onCreated,
 }: Props) {
+  useSuspendParentModal(open);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [tipo, setTipo] = useState<ProjetoTipo | "">("");
