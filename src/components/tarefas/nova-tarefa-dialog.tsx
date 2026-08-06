@@ -26,6 +26,8 @@ import { createTarefa, listAllProjetosLite } from "@/lib/tarefas.functions";
 import { PRIORIDADE_LABEL, type TarefaPrioridade } from "@/lib/tarefas-types";
 import type { Profile } from "@/lib/projetos.functions";
 import { MultiProfileSelect } from "@/components/ui/multi-profile-select";
+import { useSuspendParentModal } from "@/components/ma/nested-modal-context";
+
 
 type ProjetoTipo = "ma" | "novos_negocios";
 
@@ -64,6 +66,7 @@ export function NovaTarefaDialog({
   defaultResponsavelId,
   onCreated,
 }: Props) {
+  useSuspendParentModal(open);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [tipo, setTipo] = useState<ProjetoTipo | "">("");
