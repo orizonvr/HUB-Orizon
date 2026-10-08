@@ -37,3 +37,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Documentação interna de segurança
+docs/PLANO-BLINDAGEM-SEGURANCA.md
