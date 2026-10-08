@@ -9,27 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AceitarConviteRouteImport } from './routes/aceitar-convite'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
-import { Route as AuthenticatedNovosNegociosRouteImport } from './routes/_authenticated/novos-negocios'
-import { Route as AuthenticatedNotificacoesRouteImport } from './routes/_authenticated/notificacoes'
-import { Route as AuthenticatedMaRouteImport } from './routes/_authenticated/ma'
-import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
-import { Route as AuthenticatedDocumentosRouteImport } from './routes/_authenticated/documentos'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedDocumentosRouteImport } from './routes/_authenticated/documentos'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
+import { Route as AuthenticatedMaRouteImport } from './routes/_authenticated/ma'
+import { Route as AuthenticatedNotificacoesRouteImport } from './routes/_authenticated/notificacoes'
+import { Route as AuthenticatedNovosNegociosRouteImport } from './routes/_authenticated/novos-negocios'
+import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedComitesIndexRouteImport } from './routes/_authenticated/comites/index'
-import { Route as ApiPublicResetRenanRouteImport } from './routes/api/public/reset-renan'
-import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
-import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos/$id'
 import { Route as AuthenticatedComitesIdRouteImport } from './routes/_authenticated/comites/$id'
+import { Route as AuthenticatedProjetosIdRouteImport } from './routes/_authenticated/projetos/$id'
+import { Route as ApiPublicBootstrapAdminRouteImport } from './routes/api/public/bootstrap-admin'
+import { Route as ApiPublicResetRenanRouteImport } from './routes/api/public/reset-renan'
 import { Route as ApiPublicHooksNotifyTarefasRouteImport } from './routes/api/public/hooks/notify-tarefas'
 
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AceitarConviteRoute = AceitarConviteRouteImport.update({
@@ -37,45 +36,14 @@ const AceitarConviteRoute = AceitarConviteRouteImport.update({
   path: '/aceitar-convite',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
-  id: '/tarefas',
-  path: '/tarefas',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedNovosNegociosRoute =
-  AuthenticatedNovosNegociosRouteImport.update({
-    id: '/novos-negocios',
-    path: '/novos-negocios',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedNotificacoesRoute =
-  AuthenticatedNotificacoesRouteImport.update({
-    id: '/notificacoes',
-    path: '/notificacoes',
-    getParentRoute: () => AuthenticatedRoute,
-  } as any)
-const AuthenticatedMaRoute = AuthenticatedMaRouteImport.update({
-  id: '/ma',
-  path: '/ma',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
-  id: '/equipe',
-  path: '/equipe',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
-const AuthenticatedDocumentosRoute = AuthenticatedDocumentosRouteImport.update({
-  id: '/documentos',
-  path: '/documentos',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedConfiguracoesRoute =
@@ -84,31 +52,63 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedDocumentosRoute = AuthenticatedDocumentosRouteImport.update({
+  id: '/documentos',
+  path: '/documentos',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedMaRoute = AuthenticatedMaRouteImport.update({
+  id: '/ma',
+  path: '/ma',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedNotificacoesRoute =
+  AuthenticatedNotificacoesRouteImport.update({
+    id: '/notificacoes',
+    path: '/notificacoes',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedNovosNegociosRoute =
+  AuthenticatedNovosNegociosRouteImport.update({
+    id: '/novos-negocios',
+    path: '/novos-negocios',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
+const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedComitesIndexRoute =
   AuthenticatedComitesIndexRouteImport.update({
     id: '/comites/',
     path: '/comites/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const ApiPublicResetRenanRoute = ApiPublicResetRenanRouteImport.update({
-  id: '/api/public/reset-renan',
-  path: '/api/public/reset-renan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
-  id: '/api/public/bootstrap-admin',
-  path: '/api/public/bootstrap-admin',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedComitesIdRoute = AuthenticatedComitesIdRouteImport.update({
+  id: '/comites/$id',
+  path: '/comites/$id',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedProjetosIdRoute = AuthenticatedProjetosIdRouteImport.update({
   id: '/projetos/$id',
   path: '/projetos/$id',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
-const AuthenticatedComitesIdRoute = AuthenticatedComitesIdRouteImport.update({
-  id: '/comites/$id',
-  path: '/comites/$id',
-  getParentRoute: () => AuthenticatedRoute,
+const ApiPublicBootstrapAdminRoute = ApiPublicBootstrapAdminRouteImport.update({
+  id: '/api/public/bootstrap-admin',
+  path: '/api/public/bootstrap-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicResetRenanRoute = ApiPublicResetRenanRouteImport.update({
+  id: '/api/public/reset-renan',
+  path: '/api/public/reset-renan',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicHooksNotifyTarefasRoute =
   ApiPublicHooksNotifyTarefasRouteImport.update({
@@ -242,11 +242,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aceitar-convite': {
@@ -256,11 +256,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AceitarConviteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -270,39 +270,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/tarefas': {
-      id: '/_authenticated/tarefas'
-      path: '/tarefas'
-      fullPath: '/tarefas'
-      preLoaderRoute: typeof AuthenticatedTarefasRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/novos-negocios': {
-      id: '/_authenticated/novos-negocios'
-      path: '/novos-negocios'
-      fullPath: '/novos-negocios'
-      preLoaderRoute: typeof AuthenticatedNovosNegociosRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/notificacoes': {
-      id: '/_authenticated/notificacoes'
-      path: '/notificacoes'
-      fullPath: '/notificacoes'
-      preLoaderRoute: typeof AuthenticatedNotificacoesRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/ma': {
-      id: '/_authenticated/ma'
-      path: '/ma'
-      fullPath: '/ma'
-      preLoaderRoute: typeof AuthenticatedMaRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
-    '/_authenticated/equipe': {
-      id: '/_authenticated/equipe'
-      path: '/equipe'
-      fullPath: '/equipe'
-      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/documentos': {
@@ -312,11 +284,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDocumentosRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/configuracoes': {
-      id: '/_authenticated/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+    '/_authenticated/equipe': {
+      id: '/_authenticated/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/ma': {
+      id: '/_authenticated/ma'
+      path: '/ma'
+      fullPath: '/ma'
+      preLoaderRoute: typeof AuthenticatedMaRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/notificacoes': {
+      id: '/_authenticated/notificacoes'
+      path: '/notificacoes'
+      fullPath: '/notificacoes'
+      preLoaderRoute: typeof AuthenticatedNotificacoesRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/novos-negocios': {
+      id: '/_authenticated/novos-negocios'
+      path: '/novos-negocios'
+      fullPath: '/novos-negocios'
+      preLoaderRoute: typeof AuthenticatedNovosNegociosRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/tarefas': {
+      id: '/_authenticated/tarefas'
+      path: '/tarefas'
+      fullPath: '/tarefas'
+      preLoaderRoute: typeof AuthenticatedTarefasRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/comites/': {
@@ -326,19 +326,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedComitesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/api/public/reset-renan': {
-      id: '/api/public/reset-renan'
-      path: '/api/public/reset-renan'
-      fullPath: '/api/public/reset-renan'
-      preLoaderRoute: typeof ApiPublicResetRenanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/bootstrap-admin': {
-      id: '/api/public/bootstrap-admin'
-      path: '/api/public/bootstrap-admin'
-      fullPath: '/api/public/bootstrap-admin'
-      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/comites/$id': {
+      id: '/_authenticated/comites/$id'
+      path: '/comites/$id'
+      fullPath: '/comites/$id'
+      preLoaderRoute: typeof AuthenticatedComitesIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/projetos/$id': {
       id: '/_authenticated/projetos/$id'
@@ -347,12 +340,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProjetosIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/comites/$id': {
-      id: '/_authenticated/comites/$id'
-      path: '/comites/$id'
-      fullPath: '/comites/$id'
-      preLoaderRoute: typeof AuthenticatedComitesIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/api/public/bootstrap-admin': {
+      id: '/api/public/bootstrap-admin'
+      path: '/api/public/bootstrap-admin'
+      fullPath: '/api/public/bootstrap-admin'
+      preLoaderRoute: typeof ApiPublicBootstrapAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/reset-renan': {
+      id: '/api/public/reset-renan'
+      path: '/api/public/reset-renan'
+      fullPath: '/api/public/reset-renan'
+      preLoaderRoute: typeof ApiPublicResetRenanRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/notify-tarefas': {
       id: '/api/public/hooks/notify-tarefas'
