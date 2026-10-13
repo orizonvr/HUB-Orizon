@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState, useRef, type FormEvent } from "react";
 import { toast } from "sonner";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import {
   Loader2,
   Mail,
@@ -17,7 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/integrations/supabase/client";
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -39,10 +43,13 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<TurnstileInstance | null>(null);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -51,15 +58,23 @@ function LoginPage() {
       return;
     }
 
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      toast.error("Aguarde a validação anti-bot para prosseguir.");
+      return;
+    }
+
     setBusy(true);
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
+        options: captchaToken ? { captchaToken } : undefined,
       });
 
       if (error) {
         toast.error(error.message);
+        turnstileRef.current?.reset();
+        setCaptchaToken(null);
         return;
       }
 
@@ -286,6 +301,29 @@ function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {/* Proteção Anti-Bot (Cloudflare Turnstile) — Exibido apenas com VITE_TURNSTILE_SITE_KEY */}
+            {TURNSTILE_SITE_KEY && (
+              <div className="flex justify-center my-2 animate-fade-in-up animation-delay-500">
+                <div className="w-full flex justify-center rounded-xl overflow-hidden border border-border/60 bg-muted/20 p-1 transition-all">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => setCaptchaToken(token)}
+                    onExpire={() => setCaptchaToken(null)}
+                    onError={() => {
+                      toast.error("Falha na validação de segurança anti-bot. Tente recarregar.");
+                      setCaptchaToken(null);
+                    }}
+                    options={{
+                      theme: theme === "dark" ? "dark" : "light",
+                      size: "flexible",
+                      appearance: "always",
+                    }}
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Botão de Entrar */}
             <div className="animate-fade-in-up animation-delay-550">
