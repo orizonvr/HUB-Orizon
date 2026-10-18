@@ -16,7 +16,10 @@ export function OnboardingDialog() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (loading || !user) return;
+    if (loading || !user) {
+      setOpen(false);
+      return;
+    }
     const needs = !profile || !profile.nome_completo?.trim() || !profile.cargo?.trim();
     setOpen(needs);
     if (profile) {
