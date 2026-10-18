@@ -36,14 +36,12 @@ import { listTarefasByTipo, updateTarefa } from "@/lib/tarefas.functions";
 import {
   PRIORIDADE_LABEL,
   STATUS_LABEL,
-  ORIGEM_LABEL,
   type TarefaComContexto,
   type TarefaStatus,
   type TarefaPrioridade,
-  type TarefaOrigem,
 } from "@/lib/tarefas-types";
 import type { Profile } from "@/lib/projetos.functions";
-import type { ProjetoConfig } from "@/lib/projetos-config";
+import { type ProjetoConfig, isResponsavelElegivel } from "@/lib/projetos-config";
 import { avatarBgStyle } from "@/lib/format";
 import { initials } from "@/lib/ma-utils";
 import { NovaTarefaDialog } from "./nova-tarefa-dialog";
@@ -86,7 +84,6 @@ export function TarefasWorkspaceView({
   const [fStatus, setFStatus] = useState<string>("ativas");
   const [fPrio, setFPrio] = useState<string>("all");
   const [fPrazo, setFPrazo] = useState<PrazoFilter>("todos");
-  const [fOrigem, setFOrigem] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const tarefas = q.data?.tarefas ?? [];
@@ -111,7 +108,6 @@ export function TarefasWorkspaceView({
         if (!isActive && !session.isSticky(t.id)) return false;
       } else if (fStatus !== "all" && t.status !== fStatus) return false;
       if (fPrio !== "all" && t.prioridade !== fPrio) return false;
-      if (fOrigem !== "all" && t.origem !== fOrigem) return false;
       if (fPrazo !== "todos") {
         if (!t.prazo) return false;
         const p = new Date(t.prazo + "T00:00:00");
@@ -125,7 +121,7 @@ export function TarefasWorkspaceView({
       }
       return true;
     });
-  }, [tarefas, search, fResp, fStatus, fPrio, fOrigem, fPrazo, session]);
+  }, [tarefas, search, fResp, fStatus, fPrio, fPrazo, session]);
 
   const vencidas = tarefas.filter((t) => {
     if (t.status !== "pendente" && t.status !== "em_andamento") return false;
@@ -162,7 +158,7 @@ export function TarefasWorkspaceView({
 
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-50">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               value={search}
@@ -175,7 +171,7 @@ export function TarefasWorkspaceView({
             value={fResp}
             onChange={setFResp}
             placeholder="Responsável"
-            options={profiles.map((p) => ({
+            options={profiles.filter(isResponsavelElegivel).map((p) => ({
               value: p.id,
               label: p.nome_completo,
             }))}
@@ -215,15 +211,6 @@ export function TarefasWorkspaceView({
             ]}
             hideAll
           />
-          <FSelect
-            value={fOrigem}
-            onChange={setFOrigem}
-            placeholder="Origem"
-            options={Object.entries(ORIGEM_LABEL).map(([v, l]) => ({
-              value: v,
-              label: l,
-            }))}
-          />
         </div>
       </Card>
 
@@ -255,7 +242,6 @@ export function TarefasWorkspaceView({
                 <TableHead>Prazo</TableHead>
                 <TableHead>Prioridade</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Origem</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -426,14 +412,11 @@ function TarefaTableRow({
             {STATUS_LABEL[t.status]}
           </Badge>
         </TableCell>
-        <TableCell className="text-xs text-muted-foreground">
-          {ORIGEM_LABEL[t.origem as TarefaOrigem]}
-        </TableCell>
       </TableRow>
       {expanded && hasDescricao && (
         <TableRow className="bg-muted/20 hover:bg-muted/20">
           <TableCell />
-          <TableCell colSpan={8} className="py-3">
+          <TableCell colSpan={7} className="py-3">
             <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
               {t.descricao}
             </p>
@@ -475,7 +458,7 @@ function FSelect({
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[160px] h-9">
+      <SelectTrigger className="w-40 h-9">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

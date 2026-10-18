@@ -67,6 +67,7 @@ import {
 } from "@/lib/ma-utils";
 import {
   type ProjetoConfig,
+  isResponsavelElegivel,
 } from "@/lib/projetos-config";
 import { SUBCATEGORIAS } from "@/lib/projetos-types";
 import { TarefasTab } from "@/components/tarefas/tarefas-tab";
@@ -593,11 +594,13 @@ function ProfileSelect({
         <SelectValue placeholder="Selecionar" />
       </SelectTrigger>
       <SelectContent>
-        {profiles.map((p) => (
-          <SelectItem key={p.id} value={p.id}>
-            {p.nome_completo}
-          </SelectItem>
-        ))}
+        {profiles
+          .filter((p) => p.id === value || isResponsavelElegivel(p))
+          .map((p) => (
+            <SelectItem key={p.id} value={p.id}>
+              {p.nome_completo}
+            </SelectItem>
+          ))}
       </SelectContent>
     </Select>
   );

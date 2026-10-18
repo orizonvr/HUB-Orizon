@@ -337,7 +337,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
         {/* Filters */}
         <Card className="p-3">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-[200px]">
+            <div className="relative flex-1 min-w-50">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 value={search}
@@ -553,7 +553,7 @@ function FilterSelect({
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[160px] h-9">
+      <SelectTrigger className="w-40 h-9">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
@@ -664,7 +664,7 @@ function KanbanView({
           return (
             <div
               key={s.key}
-              className="w-72 flex-shrink-0 bg-muted/30 rounded-lg p-2"
+              className="w-72 shrink-0 bg-muted/30 rounded-lg p-2"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 const id = e.dataTransfer.getData("text/projeto-id");
@@ -742,7 +742,7 @@ function KanbanCard({
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-1.5 mt-1 flex-shrink-0">
+        <div className="flex items-center gap-1.5 mt-1 shrink-0">
           {projeto.tipo === "ma" &&
             projeto.percentual_orizon != null &&
             Number(projeto.percentual_orizon) !== 100 && (
@@ -850,8 +850,18 @@ function TableView({
   const sorted = useMemo(() => {
     const arr = [...projetos];
     arr.sort((a, b) => {
-      const av = (a[sortKey] ?? "") as string | number;
-      const bv = (b[sortKey] ?? "") as string | number;
+      const aRaw = a[sortKey];
+      const bRaw = b[sortKey];
+      const aEmpty = aRaw === null || aRaw === undefined || aRaw === "";
+      const bEmpty = bRaw === null || bRaw === undefined || bRaw === "";
+
+      // Valores nulos/vazios sempre no final (nulls last)
+      if (aEmpty && !bEmpty) return 1;
+      if (!aEmpty && bEmpty) return -1;
+      if (aEmpty && bEmpty) return 0;
+
+      const av = aRaw as string | number;
+      const bv = bRaw as string | number;
       if (av < bv) return sortDir === "asc" ? -1 : 1;
       if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;

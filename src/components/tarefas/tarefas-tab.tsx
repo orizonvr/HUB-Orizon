@@ -29,16 +29,17 @@ import {
 import {
   PRIORIDADE_LABEL,
   STATUS_LABEL,
-  ORIGEM_LABEL,
   type Tarefa,
   type TarefaPrioridade,
   type TarefaStatus,
 } from "@/lib/tarefas-types";
 import type { Profile } from "@/lib/projetos.functions";
+import { isResponsavelElegivel } from "@/lib/projetos-config";
 import { NovaTarefaDialog } from "./nova-tarefa-dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { useSessionCompleted } from "@/hooks/use-session-completed";
 import { useTarefaDrawer } from "@/hooks/use-tarefa-drawer";
+import { useAuth } from "@/hooks/use-auth";
 
 type Props = {
   projetoId: string;
@@ -244,9 +245,8 @@ function TarefaRow({
   const isCancelada = tarefa.status === "cancelada";
   const dimmed = isConcluida || isCancelada;
 
-  const canEdit =
-    currentUserId === tarefa.criado_por_id ||
-    (currentUserId != null && tarefa.responsavel_ids.includes(currentUserId));
+  const { profile } = useAuth();
+  const canEdit = profile?.role ? profile.role !== "observador" : true;
 
   const hasDescricao = !!(tarefa.descricao && tarefa.descricao.trim().length > 0);
 
@@ -294,8 +294,6 @@ function TarefaRow({
           </div>
           <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
             <PrazoBadge prazo={tarefa.prazo} concluida={isConcluida} />
-            <span>·</span>
-            <span>{ORIGEM_LABEL[tarefa.origem]}</span>
           </div>
         </div>
 
@@ -305,7 +303,7 @@ function TarefaRow({
             onValueChange={(v) => mut.mutate({ prioridade: v })}
           >
             <SelectTrigger
-              className={`h-7 w-[88px] text-xs ${prioColor(tarefa.prioridade)}`}
+              className={`h-7 w-22 text-xs ${prioColor(tarefa.prioridade)}`}
             >
               <SelectValue />
             </SelectTrigger>
@@ -319,9 +317,15 @@ function TarefaRow({
           </Select>
         </div>
 
-        <div className="w-[170px]" onClick={stopClick}>
+        <div className="w-42" onClick={stopClick}>
           <MultiProfileSelect
-            options={profiles.map((p) => ({ id: p.id, label: p.nome_completo }))}
+            options={profiles
+              .filter(
+                (p) =>
+                  tarefa.responsavel_ids.includes(p.id) ||
+                  isResponsavelElegivel(p),
+              )
+              .map((p) => ({ id: p.id, label: p.nome_completo }))}
             value={tarefa.responsavel_ids}
             onChange={(next) => mut.mutate({ responsavel_ids: next })}
             placeholder="Responsáveis"
@@ -337,7 +341,7 @@ function TarefaRow({
           onChange={(e) =>
             e.target.value && mut.mutate({ prazo: e.target.value })
           }
-          className="h-7 w-[130px] text-xs"
+          className="h-7 w-32.5 text-xs"
         />
 
         <div onClick={stopClick}>

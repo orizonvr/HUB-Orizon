@@ -37,14 +37,13 @@ import {
 } from "@/lib/tarefas.functions";
 import { listProfiles } from "@/lib/projetos.functions";
 import {
-  ORIGEM_LABEL,
   PRIORIDADE_LABEL,
   STATUS_LABEL,
   type TarefaComContexto,
-  type TarefaOrigem,
   type TarefaPrioridade,
   type TarefaStatus,
 } from "@/lib/tarefas-types";
+import { isResponsavelElegivel } from "@/lib/projetos-config";
 import { PrazoBadge } from "./tarefas-tab";
 
 type Props = {
@@ -82,7 +81,7 @@ export function TarefaDrawer({ tarefaId, onOpenChange }: Props) {
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-[480px] p-0 flex flex-col"
+        className="w-full sm:max-w-120 p-0 flex flex-col"
       >
         {q.isLoading || !tarefa ? (
           <div className="flex items-center justify-center flex-1">
@@ -91,10 +90,16 @@ export function TarefaDrawer({ tarefaId, onOpenChange }: Props) {
         ) : (
           <DrawerBody
             tarefa={tarefa}
-            profiles={(profilesQ.data?.profiles ?? []).map((p) => ({
-              id: p.id,
-              label: p.nome_completo,
-            }))}
+            profiles={(profilesQ.data?.profiles ?? [])
+              .filter(
+                (p) =>
+                  (tarefa.responsavel_ids ?? []).includes(p.id) ||
+                  isResponsavelElegivel(p),
+              )
+              .map((p) => ({
+                id: p.id,
+                label: p.nome_completo,
+              }))}
             onUpdate={async (patch) => {
               await updateFn({ data: { id: tarefa.id, patch } });
               qc.invalidateQueries({ queryKey: ["tarefa", tarefa.id] });
@@ -148,20 +153,22 @@ function DrawerBody({
   // Local mirror of server state (kept in sync when tarefa updates).
   const [titulo, setTitulo] = useState(tarefa.titulo);
   const [descricao, setDescricao] = useState(tarefa.descricao ?? "");
-  // Non-text fields don't need local state — selects/datepickers commit instantly.
+  const isEditingTituloRef = useRef(false);
+  const isEditingDescricaoRef = useRef(false);
 
   // Track snapshot from server to detect external updates.
   const serverSnapshot = useRef({
     titulo: tarefa.titulo,
     descricao: tarefa.descricao ?? "",
   });
+
   useEffect(() => {
-    if (tarefa.titulo !== serverSnapshot.current.titulo) {
+    if (!isEditingTituloRef.current && tarefa.titulo !== serverSnapshot.current.titulo) {
       setTitulo(tarefa.titulo);
       serverSnapshot.current.titulo = tarefa.titulo;
     }
     const desc = tarefa.descricao ?? "";
-    if (desc !== serverSnapshot.current.descricao) {
+    if (!isEditingDescricaoRef.current && desc !== serverSnapshot.current.descricao) {
       setDescricao(desc);
       serverSnapshot.current.descricao = desc;
     }
@@ -208,21 +215,41 @@ function DrawerBody({
   // ---------- handlers ----------
   const onTituloChange = (v: string) => {
     setTitulo(v);
-    if (v.trim().length === 0) return;
-    debouncedSave("titulo", { titulo: v.trim() });
+    debouncedSave("titulo", { titulo: v });
   };
+
+  const onTituloBlur = () => {
+    isEditingTituloRef.current = false;
+    if (debouncers.current.titulo) {
+      clearTimeout(debouncers.current.titulo);
+      debouncers.current.titulo = null;
+    }
+    const clean = titulo.trim();
+    if (clean.length > 0 && clean !== serverSnapshot.current.titulo) {
+      serverSnapshot.current.titulo = clean;
+      setTitulo(clean);
+      void save({ titulo: clean });
+    } else if (clean.length === 0) {
+      setTitulo(serverSnapshot.current.titulo);
+    }
+  };
+
   const onDescricaoChange = (v: string) => {
     setDescricao(v);
     debouncedSave("descricao", { descricao: v.length === 0 ? null : v });
   };
+
   const onDescricaoBlur = () => {
+    isEditingDescricaoRef.current = false;
     if (debouncers.current.descricao) {
       clearTimeout(debouncers.current.descricao);
       debouncers.current.descricao = null;
     }
-    const current = serverSnapshot.current.descricao ?? "";
-    if (descricao !== current) {
-      void save({ descricao: descricao.length === 0 ? null : descricao });
+    const clean = descricao.trim();
+    const current = (serverSnapshot.current.descricao ?? "").trim();
+    if (clean !== current) {
+      serverSnapshot.current.descricao = clean;
+      void save({ descricao: clean.length === 0 ? null : clean });
     }
   };
 
@@ -234,20 +261,6 @@ function DrawerBody({
     if (!date) return;
     const iso = format(date, "yyyy-MM-dd");
     void save({ prazo: iso });
-  };
-  const onOrigemChange = (v: TarefaOrigem) => {
-    if (v === "ad_hoc") {
-      void save({ origem: v, data_reuniao: null });
-    } else {
-      void save({
-        origem: v,
-        data_reuniao: tarefa.data_reuniao ?? format(new Date(), "yyyy-MM-dd"),
-      });
-    }
-  };
-  const onDataReuniaoChange = (date: Date | undefined) => {
-    if (!date) return;
-    void save({ data_reuniao: format(date, "yyyy-MM-dd") });
   };
 
   const isConcluida = tarefa.status === "concluida";
@@ -277,7 +290,11 @@ function DrawerBody({
           <Input
             id="td-titulo"
             value={titulo}
+            onFocus={() => {
+              isEditingTituloRef.current = true;
+            }}
             onChange={(e) => onTituloChange(e.target.value)}
+            onBlur={onTituloBlur}
             className={cn(
               "text-base font-semibold h-10",
               isConcluida && "line-through text-muted-foreground",
@@ -341,7 +358,7 @@ function DrawerBody({
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
-                  className="h-9 w-[180px] justify-start font-normal"
+                  className="h-9 w-45 justify-start font-normal"
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {tarefa.prazo
@@ -378,60 +395,6 @@ function DrawerBody({
           </div>
         </div>
 
-        {/* Origem */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Origem</Label>
-          <Select
-            value={tarefa.origem}
-            onValueChange={(v) => onOrigemChange(v as TarefaOrigem)}
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(ORIGEM_LABEL).map(([k, l]) => (
-                <SelectItem key={k} value={k}>
-                  {l}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {tarefa.origem === "reuniao_pipeline" && (
-            <div className="mt-2">
-              <Label className="text-xs">Data da reunião</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className="h-9 w-[180px] justify-start font-normal mt-1"
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {tarefa.data_reuniao
-                      ? format(
-                          new Date(tarefa.data_reuniao + "T00:00:00"),
-                          "dd/MM/yyyy",
-                        )
-                      : "Selecionar"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={
-                      tarefa.data_reuniao
-                        ? new Date(tarefa.data_reuniao + "T00:00:00")
-                        : undefined
-                    }
-                    onSelect={onDataReuniaoChange}
-                    initialFocus
-                    className={cn("p-3 pointer-events-auto")}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
-        </div>
-
         {/* Descrição */}
         <div className="space-y-1.5">
           <Label htmlFor="td-desc" className="text-xs">
@@ -440,6 +403,9 @@ function DrawerBody({
           <Textarea
             id="td-desc"
             value={descricao}
+            onFocus={() => {
+              isEditingDescricaoRef.current = true;
+            }}
             onChange={(e) => onDescricaoChange(e.target.value)}
             onBlur={onDescricaoBlur}
             placeholder="Observação, contexto, links..."

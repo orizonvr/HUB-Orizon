@@ -385,15 +385,7 @@ export const updateTarefa = createServerFn({ method: "POST" })
       .single();
     if (!before) throw new Error("Tarefa não encontrada.");
 
-    const role = await getActorRole(actorId);
-    const isOwner =
-      before.criado_por_id === actorId ||
-      ((before.responsavel_ids ?? []) as string[]).includes(actorId);
-    if (role !== "admin" && !isOwner) {
-      throw new Error(
-        "Forbidden: apenas criador, responsável ou admin pode editar.",
-      );
-    }
+    await assertNotObservador(actorId);
 
     const patch: Record<string, unknown> = { ...data.patch };
     if (patch.responsavel_ids) {

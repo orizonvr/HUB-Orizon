@@ -38,5 +38,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# Documentação interna de segurança
-docs/PLANO-BLINDAGEM-SEGURANCA.md
+# Documentação interna
+docs/

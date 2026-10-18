@@ -144,3 +144,24 @@ export function formatExtra(
       return `${n.toFixed(1).replace(".", ",")} anos`;
   }
 }
+
+export const NOMES_RESPONSAVEIS_OCULTOS = [
+  "ti.admin",
+  "pedro reis",
+  "diego cortez",
+  "lucas tortelli",
+  "tortelli",
+] as const;
+
+export function isResponsavelElegivel(p: {
+  nome_completo?: string | null;
+  email?: string | null;
+  label?: string | null;
+}): boolean {
+  const nome = (p.nome_completo ?? p.label ?? "").toLowerCase();
+  const email = (p.email ?? "").toLowerCase();
+  return !NOMES_RESPONSAVEIS_OCULTOS.some(
+    (bloqueado) => nome.includes(bloqueado) || email.includes(bloqueado),
+  );
+}
+

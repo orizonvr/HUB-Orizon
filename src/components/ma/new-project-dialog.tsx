@@ -30,6 +30,7 @@ import {
   type ProjetoConfig,
   TIPO_INICIATIVA,
   buildDescricaoComTipo,
+  isResponsavelElegivel,
 } from "@/lib/projetos-config";
 
 export function NewProjectDialog({
@@ -72,14 +73,19 @@ export function NewProjectDialog({
         data: {
           tipo: config.tipo,
           nome: form.nome.trim(),
-          contraparte: form.contraparte.trim(),
+          contraparte: form.contraparte.trim() || null,
           setor: form.setor,
           subcategoria: isNN ? form.subcategoria || null : null,
           estagio: form.estagio,
-          responsavel_id: form.responsavel_id,
+          responsavel_id:
+            form.responsavel_id === "__nenhum__" || !form.responsavel_id
+              ? null
+              : form.responsavel_id,
           valor_estimado: isNN
             ? null
-            : Number(form.valor_estimado || 0),
+            : form.valor_estimado
+              ? Number(form.valor_estimado)
+              : null,
           data_inicio: isNN ? form.data_inicio || null : null,
           data_fechamento_prevista: isNN
             ? null
@@ -101,15 +107,11 @@ export function NewProjectDialog({
   });
 
   const canSubmit =
-    form.nome.trim() &&
-    form.contraparte.trim() &&
-    form.setor &&
-    form.estagio &&
-    form.responsavel_id &&
-    (isNN
-      ? form.subcategoria && form.data_inicio
-      : form.valor_estimado && form.data_fechamento_prevista) &&
-    (!config.showTipoIniciativa || form.tipo_iniciativa);
+    Boolean(form.nome.trim()) &&
+    Boolean(form.setor) &&
+    Boolean(form.estagio) &&
+    (isNN ? Boolean(form.subcategoria && form.data_inicio) : true) &&
+    (!config.showTipoIniciativa || Boolean(form.tipo_iniciativa));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -129,9 +131,10 @@ export function NewProjectDialog({
             />
           </div>
           <div className="space-y-1.5">
-            <Label>Contraparte *</Label>
+            <Label>Contraparte (opcional)</Label>
             <Input
               value={form.contraparte}
+              placeholder="Opcional"
               onChange={(e) =>
                 setForm({ ...form, contraparte: e.target.value })
               }
@@ -216,7 +219,7 @@ export function NewProjectDialog({
             </div>
           )}
           <div className="space-y-1.5">
-            <Label>Responsável *</Label>
+            <Label>Responsável (opcional)</Label>
             <Select
               value={form.responsavel_id}
               onValueChange={(v) =>
@@ -224,10 +227,11 @@ export function NewProjectDialog({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder="Selecionar" />
+                <SelectValue placeholder="Selecionar (opcional)" />
               </SelectTrigger>
               <SelectContent>
-                {profiles.map((p) => (
+                <SelectItem value="__nenhum__">Sem responsável</SelectItem>
+                {profiles.filter(isResponsavelElegivel).map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.nome_completo}
                   </SelectItem>
@@ -237,10 +241,11 @@ export function NewProjectDialog({
           </div>
           {!isNN && (
             <div className="space-y-1.5">
-              <Label>{config.valorInputLabel} *</Label>
+              <Label>{config.valorInputLabel} (opcional)</Label>
               <Input
                 type="number"
                 value={form.valor_estimado}
+                placeholder="Opcional"
                 onChange={(e) =>
                   setForm({ ...form, valor_estimado: e.target.value })
                 }
@@ -262,8 +267,8 @@ export function NewProjectDialog({
             <div className="space-y-1.5">
               <Label>
                 {config.tipo === "ma"
-                  ? "Fechamento previsto *"
-                  : "Previsão de implementação *"}
+                  ? "Fechamento previsto (opcional)"
+                  : "Previsão de implementação (opcional)"}
               </Label>
               <Input
                 type="date"

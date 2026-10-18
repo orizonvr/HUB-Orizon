@@ -27,6 +27,7 @@ import { PRIORIDADE_LABEL, type TarefaPrioridade } from "@/lib/tarefas-types";
 import type { Profile } from "@/lib/projetos.functions";
 import { MultiProfileSelect } from "@/components/ui/multi-profile-select";
 import { useSuspendParentModal } from "@/components/ma/nested-modal-context";
+import { isResponsavelElegivel } from "@/lib/projetos-config";
 
 
 type ProjetoTipo = "ma" | "novos_negocios";
@@ -239,7 +240,9 @@ export function NovaTarefaDialog({
             <div className="space-y-1.5">
               <Label>Responsáveis</Label>
               <MultiProfileSelect
-                options={profiles.map((p) => ({ id: p.id, label: p.nome_completo }))}
+                options={profiles
+                  .filter(isResponsavelElegivel)
+                  .map((p) => ({ id: p.id, label: p.nome_completo }))}
                 value={responsavelIds}
                 onChange={setResponsavelIds}
                 placeholder="Selecione"
