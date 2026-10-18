@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select,
@@ -611,14 +612,23 @@ function NumberField({
   value,
   onSave,
   hint,
+  prefix,
+  suffix,
+  allowDecimals = true,
+  maxDecimals = 2,
 }: {
   label: string;
   value: number | null;
   onSave: (v: number | null) => void;
   hint?: string;
+  prefix?: string;
+  suffix?: string;
+  allowDecimals?: boolean;
+  maxDecimals?: number;
 }) {
-  const [v, setV] = useState<string>(value?.toString() ?? "");
-  useEffect(() => setV(value?.toString() ?? ""), [value]);
+  const [val, setVal] = useState<number | null>(value);
+  useEffect(() => setVal(value), [value]);
+
   return (
     <div className="space-y-1.5">
       <Label
@@ -628,13 +638,15 @@ function NumberField({
         {label}
         {hint && <span className="ml-1 text-muted-foreground/60">ⓘ</span>}
       </Label>
-      <Input
-        type="number"
-        value={v}
-        onChange={(e) => setV(e.target.value)}
+      <FormattedNumberInput
+        value={val}
+        prefix={prefix}
+        suffix={suffix}
+        allowDecimals={allowDecimals}
+        maxDecimals={maxDecimals}
+        onChangeValue={setVal}
         onBlur={() => {
-          const n = v === "" ? null : Number(v);
-          if (n !== value) onSave(n);
+          if (val !== value) onSave(val);
         }}
       />
     </div>
@@ -657,16 +669,21 @@ function OperationalMetrics({
         <NumberField
           label="Volume (ton/dia)"
           value={projeto.volume_ton_dia}
+          allowDecimals={false}
+          suffix="ton/dia"
           onSave={(v) => save({ volume_ton_dia: v })}
         />
         <NumberField
           label="% Orizon no Deal"
           value={projeto.percentual_orizon}
+          suffix="%"
           onSave={(v) => save({ percentual_orizon: v })}
         />
         <NumberField
           label="Valor da Transação (R$ MM)"
           value={projeto.valor_transacao_mm}
+          prefix="R$"
+          suffix="MM"
           onSave={(v) => save({ valor_transacao_mm: v })}
         />
       </div>
@@ -709,16 +726,19 @@ function FinTab({
             <NumberField
               label="Volume Total (unid.)"
               value={projeto.volume_ano3}
+              allowDecimals={false}
               onSave={(v) => save({ volume_ano3: v })}
             />
             <NumberField
               label="Receita Líquida Total (R$)"
               value={projeto.receita_projetada_ano3}
+              prefix="R$"
               onSave={(v) => save({ receita_projetada_ano3: v })}
             />
             <NumberField
               label="EBITDA Total (R$)"
               value={projeto.ebitda_ano3}
+              prefix="R$"
               onSave={(v) => save({ ebitda_ano3: v })}
             />
           </div>
@@ -732,36 +752,44 @@ function FinTab({
             <NumberField
               label="CAPEX Total Projeto (R$)"
               value={projeto.capex_total_nominal}
+              prefix="R$"
               onSave={(v) => save({ capex_total_nominal: v })}
             />
             <NumberField
               label="TIR Real Projeto (IPCA + %)"
               value={projeto.tir_real_projeto}
+              suffix="%"
               onSave={(v) => save({ tir_real_projeto: v })}
             />
             <NumberField
               label="TIR Real Acionista (IPCA + %)"
               value={projeto.tir_real_acionista}
+              suffix="%"
               onSave={(v) => save({ tir_real_acionista: v })}
             />
             <NumberField
               label="Valor Presente — Taxa (IPCA + %)"
               value={projeto.vpl_taxa}
+              suffix="%"
               onSave={(v) => save({ vpl_taxa: v })}
             />
             <NumberField
               label="Valor Presente — Valor (R$)"
               value={projeto.vpl_valor}
+              prefix="R$"
               onSave={(v) => save({ vpl_valor: v })}
             />
             <NumberField
               label="Payback (Anos)"
               value={projeto.payback_anos}
+              suffix="anos"
               onSave={(v) => save({ payback_anos: v })}
             />
             <NumberField
               label="Período Total do Projeto (anos)"
               value={projeto.periodo_total_anos}
+              suffix="anos"
+              allowDecimals={false}
               onSave={(v) => save({ periodo_total_anos: v })}
             />
           </div>
@@ -784,27 +812,33 @@ function FinTab({
           <NumberField
             label="Valor estimado (R$)"
             value={projeto.valor_estimado}
+            prefix="R$"
             onSave={(v) => save({ valor_estimado: v })}
           />
           <NumberField
             label="EBITDA 2025 (R$ MM)"
             hint="EBITDA realizado de 2025 (histórico)"
             value={projeto.ebitda_2025}
+            prefix="R$"
+            suffix="MM"
             onSave={(v) => save({ ebitda_2025: v })}
           />
           <NumberField
             label="EBITDA Alvo (R$)"
             value={projeto.ebitda_alvo}
+            prefix="R$"
             onSave={(v) => save({ ebitda_alvo: v })}
           />
           <NumberField
             label="Múltiplo EV/EBITDA"
             value={projeto.multiplo_ev_ebitda}
+            suffix="x"
             onSave={(v) => save({ multiplo_ev_ebitda: v })}
           />
           <NumberField
             label="Sinergias estimadas (R$)"
             value={projeto.sinergias_estimadas}
+            prefix="R$"
             onSave={(v) => save({ sinergias_estimadas: v })}
           />
         </div>

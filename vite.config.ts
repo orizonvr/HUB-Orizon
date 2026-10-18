@@ -64,8 +64,15 @@ export default defineConfig({
     },
   },
   tanstackStart: isNodeBuild
-    ? {}
+    ? {
+        serverFns: {
+          disableCsrfMiddlewareWarning: true,
+        },
+      }
     : {
+        serverFns: {
+          disableCsrfMiddlewareWarning: true,
+        },
         // Redireciona a entrada SSR para src/server.ts (wrapper de erros) — Cloudflare/Lovable.
         server: { entry: "server" },
       },

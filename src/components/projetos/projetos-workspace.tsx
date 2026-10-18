@@ -81,7 +81,6 @@ import {
   HEALTH_BG,
   HEALTH_LABEL,
   initials,
-  SETORES,
   STATUS_LABEL,
   STATUS_POR_TIPO,
 } from "@/lib/ma-utils";
@@ -95,8 +94,18 @@ import { NewProjectDialog } from "@/components/ma/new-project-dialog";
 import { CompararTargets } from "@/components/projetos/comparar-targets";
 import { EditarEmMassa } from "@/components/projetos/editar-em-massa";
 import { TarefasWorkspaceView } from "@/components/tarefas/tarefas-workspace-view";
+import { NovaTarefaDialog } from "@/components/tarefas/nova-tarefa-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { ListTodo, FolderKanban } from "lucide-react";
+
+const ESTAGIOS_MA_TAREFAS_RAPIDAS = new Set([
+  "nbo_submetida",
+  "due_diligence",
+  "negociacao",
+  "opcao_compra_assinada",
+  "assinatura_spa",
+  "pos_ma_integracao",
+]);
 
 export const projetosQuery = (config: ProjetoConfig) =>
   queryOptions({
@@ -135,6 +144,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [initialSheetTab, setInitialSheetTab] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [tarefaProjeto, setTarefaProjeto] = useState<Projeto | null>(null);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [showBulkEdit, setShowBulkEdit] = useState(false);
@@ -368,7 +378,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
               value={filterSetor}
               onChange={setFilterSetor}
               placeholder="Setor"
-              options={SETORES.map((s) => ({ value: s, label: s }))}
+              options={config.setores.map((s) => ({ value: s, label: s }))}
             />
             {config.tipo === "novos_negocios" && (
               <FilterSelect
@@ -445,6 +455,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
                 projetos={filtered}
                 profileMap={profileMap}
                 onOpen={setOpenId}
+                onNovaTarefa={setTarefaProjeto}
               />
             </div>
           </>
@@ -467,6 +478,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
             onOpen={setOpenId}
             selectedIds={compareIds}
             onToggleSelect={toggleCompare}
+            onNovaTarefa={setTarefaProjeto}
           />
         )}
         {compareIds.length >= 1 && (
@@ -535,6 +547,22 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
           profiles={profiles}
           onCreated={(id) => setOpenId(id)}
         />
+        <NovaTarefaDialog
+          open={tarefaProjeto !== null}
+          onOpenChange={(o) => !o && setTarefaProjeto(null)}
+          profiles={profiles}
+          projetoFixo={
+            tarefaProjeto
+              ? { id: tarefaProjeto.id, nome: tarefaProjeto.nome }
+              : null
+          }
+          tipoPadrao={tarefaProjeto?.tipo ?? config.tipo}
+          defaultResponsavelId={tarefaProjeto?.responsavel_id}
+          onCreated={() => {
+            qc.invalidateQueries({ queryKey: ["tarefas"] });
+            qc.invalidateQueries({ queryKey: [config.queryKey] });
+          }}
+        />
       </div>
     </TooltipProvider>
   );
@@ -574,11 +602,13 @@ function KanbanView({
   projetos,
   profileMap,
   onOpen,
+  onNovaTarefa,
 }: {
   config: ProjetoConfig;
   projetos: Projeto[];
   profileMap: Map<string, Profile>;
   onOpen: (id: string) => void;
+  onNovaTarefa?: (p: Projeto) => void;
 }) {
   const qc = useQueryClient();
   const updateFn = useServerFn(updateProjeto);
@@ -696,6 +726,9 @@ function KanbanView({
                         : undefined
                     }
                     onOpen={() => onOpen(p.id)}
+                    onNovaTarefa={
+                      onNovaTarefa ? () => onNovaTarefa(p) : undefined
+                    }
                   />
                 ))}
               </div>
@@ -712,12 +745,17 @@ function KanbanCard({
   projeto,
   profile,
   onOpen,
+  onNovaTarefa,
 }: {
   projeto: Projeto;
   profile?: Profile;
   onOpen: () => void;
+  onNovaTarefa?: () => void;
 }) {
   const h = healthFor(projeto);
+  const canQuickTask =
+    projeto.tipo === "novos_negocios" ||
+    ESTAGIOS_MA_TAREFAS_RAPIDAS.has(projeto.estagio);
   return (
     <Card
       draggable
@@ -782,20 +820,41 @@ function KanbanCard({
         </div>
       )}
       <div className="mt-2 flex items-center justify-between">
-        {profile ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Avatar className="h-6 w-6">
-              <AvatarFallback className="text-[10px]" style={avatarBgStyle(profile.nome_completo)}>
-                  {initials(profile.nome_completo)}
-                </AvatarFallback>
-              </Avatar>
-            </TooltipTrigger>
-            <TooltipContent>{profile.nome_completo}</TooltipContent>
-          </Tooltip>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {profile ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Avatar className="h-6 w-6">
+                <AvatarFallback className="text-[10px]" style={avatarBgStyle(profile.nome_completo)}>
+                    {initials(profile.nome_completo)}
+                  </AvatarFallback>
+                </Avatar>
+              </TooltipTrigger>
+              <TooltipContent>{profile.nome_completo}</TooltipContent>
+            </Tooltip>
+          ) : (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+          {canQuickTask && onNovaTarefa && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNovaTarefa();
+                  }}
+                >
+                  <Plus className="h-3 w-3 mr-0.5" />
+                  Tarefa
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Criar tarefa para este projeto</TooltipContent>
+            </Tooltip>
+          )}
+        </div>
         <span className="text-xs text-muted-foreground font-medium">
           {formatMonthYear(projeto.data_fechamento_prevista)}
         </span>
@@ -1257,6 +1316,7 @@ function CardsView({
   onOpen,
   selectedIds,
   onToggleSelect,
+  onNovaTarefa,
 }: {
   config: ProjetoConfig;
   projetos: Projeto[];
@@ -1264,6 +1324,7 @@ function CardsView({
   onOpen: (id: string) => void;
   selectedIds: string[];
   onToggleSelect: (id: string) => void;
+  onNovaTarefa?: (p: Projeto) => void;
 }) {
   if (projetos.length === 0) {
     return (
@@ -1280,6 +1341,9 @@ function CardsView({
           ? profileMap.get(p.responsavel_id)
           : undefined;
         const h = healthFor(p);
+        const canQuickTask =
+          p.tipo === "novos_negocios" ||
+          ESTAGIOS_MA_TAREFAS_RAPIDAS.has(p.estagio);
         return (
           <Card
             key={p.id}
@@ -1334,18 +1398,39 @@ function CardsView({
               </p>
             )}
             <div className="flex items-center justify-between pt-2 border-t">
-              {resp ? (
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-6 w-6">
-                    <AvatarFallback className="text-[10px]" style={avatarBgStyle(resp.nome_completo)}>
-                      {initials(resp.nome_completo)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-xs">{resp.nome_completo}</span>
-                </div>
-              ) : (
-                <span className="text-xs text-muted-foreground">—</span>
-              )}
+              <div className="flex items-center gap-2">
+                {resp ? (
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-[10px]" style={avatarBgStyle(resp.nome_completo)}>
+                        {initials(resp.nome_completo)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs">{resp.nome_completo}</span>
+                  </div>
+                ) : (
+                  <span className="text-xs text-muted-foreground">—</span>
+                )}
+                {canQuickTask && onNovaTarefa && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNovaTarefa(p);
+                        }}
+                      >
+                        <Plus className="h-3 w-3 mr-0.5" />
+                        Tarefa
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Criar tarefa para este projeto</TooltipContent>
+                  </Tooltip>
+                )}
+              </div>
               <span className="text-xs text-muted-foreground font-medium">
                 {formatMonthYear(p.data_fechamento_prevista)}
               </span>

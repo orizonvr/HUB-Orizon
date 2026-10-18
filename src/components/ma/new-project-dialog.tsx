@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { FormattedNumberInput } from "@/components/ui/formatted-number-input";
 import {
   Select,
   SelectContent,
@@ -57,7 +58,7 @@ export function NewProjectDialog({
     subcategoria: "",
     estagio: config.estagioInicial,
     responsavel_id: "",
-    valor_estimado: "",
+    valor_estimado: null as number | null,
     data_inicio: "",
     data_fechamento_prevista: "",
     descricao: "",
@@ -81,11 +82,7 @@ export function NewProjectDialog({
             form.responsavel_id === "__nenhum__" || !form.responsavel_id
               ? null
               : form.responsavel_id,
-          valor_estimado: isNN
-            ? null
-            : form.valor_estimado
-              ? Number(form.valor_estimado)
-              : null,
+          valor_estimado: isNN ? null : form.valor_estimado,
           data_inicio: isNN ? form.data_inicio || null : null,
           data_fechamento_prevista: isNN
             ? null
@@ -242,12 +239,12 @@ export function NewProjectDialog({
           {!isNN && (
             <div className="space-y-1.5">
               <Label>{config.valorInputLabel} (opcional)</Label>
-              <Input
-                type="number"
+              <FormattedNumberInput
+                prefix="R$"
                 value={form.valor_estimado}
-                placeholder="Opcional"
-                onChange={(e) =>
-                  setForm({ ...form, valor_estimado: e.target.value })
+                placeholder="0"
+                onChangeValue={(val) =>
+                  setForm({ ...form, valor_estimado: val })
                 }
               />
             </div>

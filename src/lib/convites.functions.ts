@@ -24,7 +24,7 @@ export type ConviteInfo = {
 
 export const inviteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         nome_completo: z.string().trim().min(1).max(120),
@@ -103,7 +103,7 @@ export const inviteUser = createServerFn({ method: "POST" })
 
 export const resendInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ profile_id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ profile_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }): Promise<ConviteInfo> => {
     await assertAdmin(context.userId);
 
@@ -138,7 +138,7 @@ export const resendInvite = createServerFn({ method: "POST" })
 
 export const getCurrentInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ profile_id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ profile_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }): Promise<ConviteInfo> => {
     await assertAdmin(context.userId);
     const { data: conv } = await supabaseAdmin
@@ -181,7 +181,7 @@ export const getCurrentInvite = createServerFn({ method: "POST" })
 
 export const cancelInvite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ profile_id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ profile_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const { data: prof } = await supabaseAdmin
@@ -210,7 +210,7 @@ export type InvitePreview = {
 };
 
 export const previewInvite = createServerFn({ method: "POST" })
-  .inputValidator((d) => z.object({ token: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ token: z.string().uuid() }).parse(d))
   .handler(async ({ data }): Promise<InvitePreview> => {
     const { data: conv } = await supabaseAdmin
       .from("convites")
@@ -236,7 +236,7 @@ export const previewInvite = createServerFn({ method: "POST" })
   });
 
 export const acceptInvite = createServerFn({ method: "POST" })
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         token: z.string().uuid(),

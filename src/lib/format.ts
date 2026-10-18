@@ -76,3 +76,47 @@ export function formatValorTransacaoMM(v: number | null | undefined): string | n
   return `R$ ${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(n)} MM`;
 }
 
+export function parseNumberBR(str: string | null | undefined): number | null {
+  if (!str) return null;
+  const clean = str.replace(/[^\d,-]/g, "").replace(",", ".");
+  if (clean === "" || clean === "-") return null;
+  const n = Number(clean);
+  return isFinite(n) ? n : null;
+}
+
+export function formatNumberBR(
+  val: number | null | undefined,
+  options?: { decimals?: number; minDecimals?: number }
+): string {
+  if (val == null || !isFinite(Number(val))) return "";
+  const n = Number(val);
+  const minDec = options?.minDecimals ?? (options?.decimals !== undefined ? options.decimals : 0);
+  const maxDec = options?.decimals ?? 2;
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: minDec,
+    maximumFractionDigits: maxDec,
+  }).format(n);
+}
+
+export function formatDigitsToBR(
+  raw: string,
+  allowDecimals = true,
+  maxDecimals = 2
+): string {
+  if (!raw) return "";
+  const isNegative = raw.trim().startsWith("-");
+  // Substitui pontos existentes por nada e padroniza vírgulas
+  const cleaned = raw.replace(/\./g, "").replace(/,/g, ",");
+  const parts = cleaned.split(",");
+  let integerPart = parts[0].replace(/\D/g, "");
+  if (integerPart) {
+    integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  }
+  let result = integerPart;
+  if (allowDecimals && parts.length > 1) {
+    const decimalPart = parts[1].replace(/\D/g, "").slice(0, maxDecimals);
+    result = `${integerPart},${decimalPart}`;
+  }
+  return isNegative && result ? `-${result}` : result;
+}
+

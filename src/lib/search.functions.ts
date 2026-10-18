@@ -11,7 +11,7 @@ export type SearchResult =
 
 export const globalSearch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z.object({ q: z.string().min(1).max(200) }).parse(d),
   )
   .handler(async ({ data }) => {

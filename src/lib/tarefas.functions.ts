@@ -74,7 +74,7 @@ async function enrichTarefas(rows: Tarefa[]): Promise<TarefaComContexto[]> {
 // ---------- GET ONE ----------
 export const getTarefaById = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { data: row, error } = await supabaseAdmin
       .from("tarefas")
@@ -89,7 +89,7 @@ export const getTarefaById = createServerFn({ method: "POST" })
 // ---------- LIST ----------
 export const listTarefasByProjeto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ projeto_id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ projeto_id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { data: rows, error } = await supabaseAdmin
       .from("tarefas")
@@ -102,7 +102,7 @@ export const listTarefasByProjeto = createServerFn({ method: "POST" })
 
 export const listTarefasByTipo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({ tipo: z.enum(["ma", "novos_negocios"]).optional().nullable() })
       .parse(d),
@@ -250,7 +250,7 @@ const createSchema = z.object({
 
 export const createTarefa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => createSchema.parse(d))
+  .validator((d) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
     const actorId = context.userId;
     await assertNotObservador(actorId);
@@ -295,7 +295,7 @@ export const createTarefa = createServerFn({ method: "POST" })
 
 export const createTarefasBatch = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         data_reuniao: z.string().min(10).max(10),
@@ -373,7 +373,7 @@ const updateSchema = z.object({
 
 export const updateTarefa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => updateSchema.parse(d))
+  .validator((d) => updateSchema.parse(d))
   .handler(async ({ data, context }) => {
     const actorId = context.userId;
     await assertNotObservador(actorId);
@@ -456,7 +456,7 @@ export const updateTarefa = createServerFn({ method: "POST" })
 
 export const deleteTarefa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const actorId = context.userId;
     const { data: before } = await supabaseAdmin

@@ -23,7 +23,7 @@ export const getPreferencias = createServerFn({ method: "GET" })
 
 export const updatePreferencias = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         email_notificacoes: z.boolean().optional(),

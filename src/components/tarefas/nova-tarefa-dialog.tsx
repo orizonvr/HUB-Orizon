@@ -108,8 +108,7 @@ export function NovaTarefaDialog({
     setPrioridade("media");
     if (projetoFixo) {
       setProjetoId(projetoFixo.id);
-      // tipo will be derived once projetos load; if absent, leave empty (it's locked anyway).
-      setTipo(projetoTipoMap.get(projetoFixo.id) ?? "");
+      setTipo(tipoPadrao ?? projetoTipoMap.get(projetoFixo.id) ?? "");
     } else {
       setProjetoId("");
       setTipo(tipoPadrao ?? "");

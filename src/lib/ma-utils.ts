@@ -108,13 +108,9 @@ export function initials(name: string): string {
 }
 
 export const SETORES = [
-  "Saneamento",
+  "Ecoparque",
   "Energia",
-  "Resíduos Sólidos",
-  "Infraestrutura",
-  "Logística",
-  "Concessões",
-  "Tecnologia",
+  "Biometano",
   "Outros",
 ];
 

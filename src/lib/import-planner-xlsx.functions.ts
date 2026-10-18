@@ -123,7 +123,7 @@ function parseWorkbook(base64: string): ParsedPayload {
 // ============================ PREVIEW ============================
 export const previewImportPlannerXlsx = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z.object({ arquivo_base64: z.string().min(10) }).parse(d),
   )
   .handler(async ({ data, context }) => {
@@ -252,7 +252,7 @@ const commitSchema = z.object({
 
 export const commitImportPlannerXlsx = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => commitSchema.parse(d))
+  .validator((d) => commitSchema.parse(d))
   .handler(async ({ data, context }) => {
     const PRAZO_SEM_DEADLINE = "2099-12-31";
     await assertAdmin(context.userId);

@@ -149,7 +149,7 @@ function quarterRange(d = new Date()): { start: string; end: string } {
 
 export const getDashboardData = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z.object({ tipo: z.enum(["tudo", "ma", "novos_negocios"]).default("tudo") }).parse(d ?? {}),
   )
   .handler(async ({ data }): Promise<DashboardData> => {

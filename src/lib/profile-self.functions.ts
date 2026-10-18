@@ -11,7 +11,7 @@ const schema = z.object({
 
 export const updateOwnProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => schema.parse(d))
+  .validator((d) => schema.parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await supabaseAdmin
       .from("profiles")

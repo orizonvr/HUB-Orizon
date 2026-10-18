@@ -50,7 +50,7 @@ async function assertAdmin(userId: string) {
 // ---------- LIST ----------
 export const listProjetosByTipo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z.object({ tipo: z.enum(["ma", "novos_negocios"]) }).parse(d),
   )
   .handler(async ({ data }) => {
@@ -90,7 +90,7 @@ export const listProfiles = createServerFn({ method: "GET" })
 // ---------- GET DETAIL ----------
 export const getProjetoDetail = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const [proj, coms, docs, ativs, profs] = await Promise.all([
       supabaseAdmin.from("projetos").select("*").eq("id", data.id).single(),
@@ -158,7 +158,7 @@ const createSchema = z.object({
 
 export const createProjeto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => createSchema.parse(d))
+  .validator((d) => createSchema.parse(d))
   .handler(async ({ data, context }) => {
     const actorId = context.userId;
     await assertNotObservador(actorId);
@@ -245,7 +245,7 @@ const updateSchema = z.object({
 
 export const updateProjeto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => updateSchema.parse(d))
+  .validator((d) => updateSchema.parse(d))
   .handler(async ({ data, context }) => {
     const actorId = context.userId;
     const clean: Record<string, unknown> = {};
@@ -304,7 +304,7 @@ export const updateProjeto = createServerFn({ method: "POST" })
 // ---------- DELETE ----------
 export const deleteProjeto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     await supabaseAdmin.from("comentarios").delete().eq("projeto_id", data.id);
@@ -322,7 +322,7 @@ export const deleteProjeto = createServerFn({ method: "POST" })
 // ---------- COMENTARIO ----------
 export const addComentario = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         projeto_id: z.string().uuid(),
@@ -352,7 +352,7 @@ export const addComentario = createServerFn({ method: "POST" })
 // ---------- DOCUMENTO ----------
 export const uploadDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         projeto_id: z.string().uuid(),
@@ -414,7 +414,7 @@ export const uploadDocumento = createServerFn({ method: "POST" })
 
 export const getDocumentoUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const role = await getActorRole(context.userId);
     if (role === "observador") {
@@ -435,7 +435,7 @@ export const getDocumentoUrl = createServerFn({ method: "POST" })
 
 export const deleteDocumento = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const actorId = context.userId;
     const { data: doc } = await supabaseAdmin

@@ -141,7 +141,7 @@ export const listComites = createServerFn({ method: "GET" })
 // ---------- GET DETAIL ----------
 export const getComiteDetail = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { data: comite, error } = await supabaseAdmin
       .from("comites")
@@ -264,7 +264,7 @@ export const getComiteDetail = createServerFn({ method: "POST" })
 // ---------- CREATE ----------
 export const createComite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         titulo: z.string().min(3).max(200),
@@ -293,7 +293,7 @@ export const createComite = createServerFn({ method: "POST" })
 // ---------- UPDATE ----------
 export const updateComite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         id: z.string().uuid(),
@@ -340,7 +340,7 @@ export const updateComite = createServerFn({ method: "POST" })
 // ---------- DELETE ----------
 export const deleteComite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { error } = await supabaseAdmin
       .from("comites")
@@ -353,7 +353,7 @@ export const deleteComite = createServerFn({ method: "POST" })
 // ---------- PAUTA ----------
 export const addProjetoToPauta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         comite_id: z.string().uuid(),
@@ -393,7 +393,7 @@ export const addProjetoToPauta = createServerFn({ method: "POST" })
 
 export const removeProjetoFromPauta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { error } = await supabaseAdmin
       .from("comite_pauta")
@@ -405,7 +405,7 @@ export const removeProjetoFromPauta = createServerFn({ method: "POST" })
 
 export const reordenarPauta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         comite_id: z.string().uuid(),
@@ -427,7 +427,7 @@ export const reordenarPauta = createServerFn({ method: "POST" })
 
 export const updatePautaItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         id: z.string().uuid(),
@@ -468,7 +468,7 @@ export const updatePautaItem = createServerFn({ method: "POST" })
 // ---------- REALIZAR (fechamento) ----------
 export const realizarComite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         id: z.string().uuid(),
@@ -608,7 +608,7 @@ async function ensureBriefingPermission(
 
 export const getBriefingContext = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ pauta_id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ pauta_id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { data: pauta, error } = await supabaseAdmin
       .from("comite_pauta")
@@ -626,7 +626,7 @@ export const getBriefingContext = createServerFn({ method: "POST" })
 
 export const salvarBriefing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         pauta_id: z.string().uuid(),
@@ -660,7 +660,7 @@ export const salvarBriefing = createServerFn({ method: "POST" })
 
 export const gerarBriefingIA = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ pauta_id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ pauta_id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { projeto_id } = await ensureBriefingPermission(
       data.pauta_id,
@@ -714,7 +714,7 @@ export type DecisaoComite = {
 
 export const getDecisoesComiteByProjeto = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ projeto_id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ projeto_id: z.string().uuid() }).parse(d))
   .handler(async ({ data }) => {
     const { data: rows, error } = await supabaseAdmin
       .from("comite_pauta")

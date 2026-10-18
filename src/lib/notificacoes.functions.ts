@@ -6,7 +6,7 @@ import type { Notificacao } from "./notificacoes-types";
 
 export const listNotificacoes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z.object({ limit: z.number().min(1).max(100).default(10) }).parse(d ?? {}),
   )
   .handler(async ({ data, context }) => {
@@ -22,7 +22,7 @@ export const listNotificacoes = createServerFn({ method: "POST" })
 
 export const listAllNotificacoes = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         page: z.number().min(0).default(0),
@@ -60,7 +60,7 @@ export const contarNaoLidas = createServerFn({ method: "GET" })
 
 export const marcarComoLida = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .validator((d) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await supabaseAdmin
       .from("notificacoes")

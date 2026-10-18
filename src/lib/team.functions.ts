@@ -85,7 +85,7 @@ export const listTeam = createServerFn({ method: "GET" })
 
 export const updateMemberRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z
       .object({
         id: z.string().uuid(),
@@ -123,7 +123,7 @@ export const updateMemberRole = createServerFn({ method: "POST" })
 
 export const setMemberActive = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) =>
+  .validator((d) =>
     z.object({ id: z.string().uuid(), ativo: z.boolean() }).parse(d),
   )
   .handler(async ({ data, context }) => {
