@@ -55,6 +55,16 @@ export const SUBCATEGORIA_LABEL: Record<string, string> = {
 export type ProjetoTipo = "ma" | "novos_negocios";
 export type UserRole = "admin" | "lider" | "analista" | "observador";
 
+export type PipelineEstagio = {
+  id: string;
+  tipo: ProjetoTipo;
+  chave: string;
+  label: string;
+  ordem: number;
+  ativo: boolean;
+  cor?: string | null;
+};
+
 export type Profile = {
   id: string;
   nome_completo: string;

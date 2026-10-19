@@ -2,12 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type {
-  Profile,
-  Projeto,
-  Comentario,
-  Documento,
-  Atividade,
+import {
+  MA_ESTAGIOS,
+  NN_ESTAGIOS,
+  type Profile,
+  type Projeto,
+  type Comentario,
+  type Documento,
+  type Atividade,
 } from "./projetos-types";
 
 // Re-export for back-compat with existing imports.
@@ -461,3 +463,216 @@ export const deleteDocumento = createServerFn({ method: "POST" })
     });
     return { ok: true as const };
   });
+
+// ---------- PIPELINE ESTAGIOS DINAMICOS ----------
+
+export const listPipelineEstagios = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) =>
+    z.object({ tipo: z.enum(["ma", "novos_negocios"]) }).parse(d),
+  )
+  .handler(async ({ data }) => {
+    try {
+      const { data: rows, error } = await supabaseAdmin
+        .from("pipeline_estagios")
+        .select("*")
+        .eq("tipo", data.tipo)
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+
+      if (!error && rows && rows.length > 0) {
+        return {
+          estagios: rows.map((r) => ({
+            id: r.id,
+            key: r.chave,
+            label: r.label,
+            ordem: r.ordem,
+            cor: r.cor,
+          })),
+        };
+      }
+    } catch (err) {
+      console.warn("[listPipelineEstagios] Fallback para estagios estáticos:", err);
+    }
+
+    // Fallback gracioso para os estágios padrões
+    const defaults =
+      data.tipo === "ma" ? [...MA_ESTAGIOS] : [...NN_ESTAGIOS];
+    return {
+      estagios: defaults.map((s, idx) => ({
+        id: `default-${s.key}`,
+        key: s.key,
+        label: s.label,
+        ordem: idx + 1,
+        cor: null,
+      })),
+    };
+  });
+
+export const createPipelineEstagio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) =>
+    z
+      .object({
+        tipo: z.enum(["ma", "novos_negocios"]),
+        label: z.string().min(1).max(200),
+        chave: z.string().min(1).max(100).optional(),
+        cor: z.string().max(50).optional().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const role = await getActorRole(context.userId);
+    if (role !== "admin" && role !== "lider") {
+      throw new Error("Forbidden: apenas admin ou líderes podem gerenciar estágios.");
+    }
+
+    const chave =
+      data.chave ||
+      data.label
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 50);
+
+    const { data: last } = await supabaseAdmin
+      .from("pipeline_estagios")
+      .select("ordem")
+      .eq("tipo", data.tipo)
+      .order("ordem", { ascending: false })
+      .limit(1)
+      .single();
+
+    const ordem = (last?.ordem ?? 0) + 1;
+
+    const { data: inserted, error } = await supabaseAdmin
+      .from("pipeline_estagios")
+      .insert({
+        tipo: data.tipo,
+        chave,
+        label: data.label.trim(),
+        ordem,
+        ativo: true,
+        cor: data.cor ?? null,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { estagio: inserted };
+  });
+
+export const updatePipelineEstagio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        label: z.string().min(1).max(200).optional(),
+        ordem: z.number().int().optional(),
+        cor: z.string().max(50).optional().nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const role = await getActorRole(context.userId);
+    if (role !== "admin" && role !== "lider") {
+      throw new Error("Forbidden: apenas admin ou líderes podem gerenciar estágios.");
+    }
+
+    const patch: {
+      atualizado_em: string;
+      label?: string;
+      ordem?: number;
+      cor?: string | null;
+    } = {
+      atualizado_em: new Date().toISOString(),
+    };
+    if (data.label !== undefined) patch.label = data.label.trim();
+    if (data.ordem !== undefined) patch.ordem = data.ordem;
+    if (data.cor !== undefined) patch.cor = data.cor;
+
+    const { data: updated, error } = await supabaseAdmin
+      .from("pipeline_estagios")
+      .update(patch)
+      .eq("id", data.id)
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return { estagio: updated };
+  });
+
+export const deletePipelineEstagio = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        transferirParaChave: z.string().min(1),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const role = await getActorRole(context.userId);
+    if (role !== "admin" && role !== "lider") {
+      throw new Error("Forbidden: apenas admin ou líderes podem excluir estágios.");
+    }
+
+    const { data: stage } = await supabaseAdmin
+      .from("pipeline_estagios")
+      .select("id, tipo, chave, label")
+      .eq("id", data.id)
+      .single();
+
+    if (!stage) throw new Error("Estágio não encontrado.");
+
+    if (stage.chave === data.transferirParaChave) {
+      throw new Error("O estágio de destino não pode ser o mesmo estágio a ser excluído.");
+    }
+
+    // Transfere com segurança todos os projetos desse estágio para o estágio de destino
+    const { error: moveErr } = await supabaseAdmin
+      .from("projetos")
+      .update({
+        estagio: data.transferirParaChave,
+        atualizado_em: new Date().toISOString(),
+      })
+      .eq("tipo", stage.tipo)
+      .eq("estagio", stage.chave);
+
+    if (moveErr) throw new Error(`Falha ao transferir projetos: ${moveErr.message}`);
+
+    // Exclui ou inativa o estágio
+    const { error: delErr } = await supabaseAdmin
+      .from("pipeline_estagios")
+      .delete()
+      .eq("id", data.id);
+
+    if (delErr) throw new Error(delErr.message);
+
+    return { ok: true as const };
+  });
+
+export const reorderPipelineEstagios = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d) => z.object({ ids: z.array(z.string().uuid()) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const role = await getActorRole(context.userId);
+    if (role !== "admin" && role !== "lider") {
+      throw new Error("Forbidden: apenas admin ou líderes podem reordenar estágios.");
+    }
+
+    const updates = data.ids.map((id, index) =>
+      supabaseAdmin
+        .from("pipeline_estagios")
+        .update({ ordem: index + 1, atualizado_em: new Date().toISOString() })
+        .eq("id", id),
+    );
+
+    await Promise.all(updates);
+    return { ok: true as const };
+  });
+

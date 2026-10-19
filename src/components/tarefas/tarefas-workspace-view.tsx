@@ -30,6 +30,8 @@ import {
   CalendarPlus,
   ChevronRight,
   ChevronDown,
+  Bookmark,
+  CheckSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { listTarefasByTipo, updateTarefa } from "@/lib/tarefas.functions";
@@ -39,11 +41,10 @@ import {
   type TarefaComContexto,
   type TarefaStatus,
   type TarefaPrioridade,
+  type TarefaTipo,
 } from "@/lib/tarefas-types";
 import type { Profile } from "@/lib/projetos.functions";
 import { type ProjetoConfig, isResponsavelElegivel } from "@/lib/projetos-config";
-import { avatarBgStyle } from "@/lib/format";
-import { initials } from "@/lib/ma-utils";
 import { NovaTarefaDialog } from "./nova-tarefa-dialog";
 import { NovaRodadaDrawer } from "./nova-rodada-drawer";
 import { PrazoBadge } from "./tarefas-tab";
@@ -84,6 +85,8 @@ export function TarefasWorkspaceView({
   const [fStatus, setFStatus] = useState<string>("ativas");
   const [fPrio, setFPrio] = useState<string>("all");
   const [fPrazo, setFPrazo] = useState<PrazoFilter>("todos");
+  const [fTipo, setFTipo] = useState<string>("all");
+  const [fDep, setFDep] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const tarefas = q.data?.tarefas ?? [];
@@ -93,18 +96,21 @@ export function TarefasWorkspaceView({
 
   const handleOpenTask = (t: TarefaComContexto) => openTarefa(t.id);
 
-
   const filtered = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const qq = search.trim().toLowerCase();
-    return tarefas.filter((t) => {
+    const result = tarefas.filter((t) => {
       if (qq && !`${t.titulo} ${t.projeto_nome}`.toLowerCase().includes(qq))
         return false;
       if (fResp !== "all" && !t.responsavel_ids.includes(fResp)) return false;
+      if (fTipo !== "all" && t.tipo !== fTipo) return false;
+      if (fDep === "terceiros" && !t.dependencia_terceiro) return false;
+      if (fDep === "com_dep" && !t.dependencia_terceiro && !t.dependencia_id) return false;
+      if (fDep === "sem_dep" && (t.dependencia_terceiro || t.dependencia_id)) return false;
+
       if (fStatus === "ativas") {
         const isActive = t.status === "pendente" || t.status === "em_andamento";
-        // Keep just-completed rows visible in "Ativas" until reload.
         if (!isActive && !session.isSticky(t.id)) return false;
       } else if (fStatus !== "all" && t.status !== fStatus) return false;
       if (fPrio !== "all" && t.prioridade !== fPrio) return false;
@@ -121,9 +127,18 @@ export function TarefasWorkspaceView({
       }
       return true;
     });
-  }, [tarefas, search, fResp, fStatus, fPrio, fPrazo, session]);
 
+    // Destaca acompanhamentos no topo
+    return result.sort((a, b) => {
+      if (a.tipo === "acompanhamento" && b.tipo !== "acompanhamento") return -1;
+      if (a.tipo !== "acompanhamento" && b.tipo === "acompanhamento") return 1;
+      return 0;
+    });
+  }, [tarefas, search, fResp, fStatus, fPrio, fPrazo, fTipo, fDep, session]);
+
+  // Acompanhamentos não contam como vencidos
   const vencidas = tarefas.filter((t) => {
+    if (t.tipo === "acompanhamento") return false;
     if (t.status !== "pendente" && t.status !== "em_andamento") return false;
     if (!t.prazo) return false;
     return new Date(t.prazo + "T00:00:00") < new Date(new Date().toDateString());
@@ -158,7 +173,7 @@ export function TarefasWorkspaceView({
 
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-50">
+          <div className="relative flex-1 min-w-44">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               value={search}
@@ -167,6 +182,27 @@ export function TarefasWorkspaceView({
               className="pl-8"
             />
           </div>
+          <FSelect
+            value={fTipo}
+            onChange={setFTipo}
+            placeholder="Classificação"
+            options={[
+              { value: "tarefa", label: "Tarefas Padrão" },
+              { value: "acompanhamento", label: "Acompanhamentos" },
+            ]}
+            allLabel="Todas classificações"
+          />
+          <FSelect
+            value={fDep}
+            onChange={setFDep}
+            placeholder="Dependência"
+            options={[
+              { value: "com_dep", label: "Com dependência" },
+              { value: "terceiros", label: "Terceiros" },
+              { value: "sem_dep", label: "Sem dependência" },
+            ]}
+            allLabel="Todas dependências"
+          />
           <FSelect
             value={fResp}
             onChange={setFResp}
@@ -239,6 +275,7 @@ export function TarefasWorkspaceView({
                 <TableHead>Tarefa</TableHead>
                 <TableHead>Projeto</TableHead>
                 <TableHead>Responsável</TableHead>
+                <TableHead>Dependência</TableHead>
                 <TableHead>Prazo</TableHead>
                 <TableHead>Prioridade</TableHead>
                 <TableHead>Status</TableHead>
@@ -278,7 +315,6 @@ export function TarefasWorkspaceView({
           onOpenTask={handleOpenTask}
         />
       )}
-
 
       <NovaTarefaDialog
         open={showNew}
@@ -352,13 +388,17 @@ function TarefaTableRow({
   };
 
   const isConcluida = t.status === "concluida";
+  const isAcompanhamento = t.tipo === "acompanhamento";
   const dimmed = isConcluida || t.status === "cancelada";
   const hasDescricao = !!(t.descricao && t.descricao.trim().length > 0);
   const stop = (e: React.MouseEvent) => e.stopPropagation();
+
   return (
     <>
       <TableRow
-        className={`cursor-pointer ${dimmed ? "opacity-60" : ""}`}
+        className={`cursor-pointer ${dimmed ? "opacity-60" : ""} ${
+          isAcompanhamento ? "bg-blue-50/20 dark:bg-blue-950/10" : ""
+        }`}
         onClick={() => openTarefa(t.id)}
       >
         <TableCell className="w-8 p-0 pl-2" onClick={stop}>
@@ -384,16 +424,36 @@ function TarefaTableRow({
           />
         </TableCell>
         <TableCell
-          className={`font-medium max-w-[320px] truncate ${
+          className={`font-medium max-w-85 truncate ${
             isConcluida ? "line-through" : ""
           }`}
         >
-          {t.titulo}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {isAcompanhamento && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200"
+              >
+                <Bookmark className="h-2.5 w-2.5 mr-0.5 inline" /> Acompanhamento
+              </Badge>
+            )}
+            <span className="truncate">{t.titulo}</span>
+            {t.subtarefas_count && t.subtarefas_count > 0 ? (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 text-muted-foreground gap-1"
+                title={`${t.subtarefas_concluidas} de ${t.subtarefas_count} subtarefas concluídas`}
+              >
+                <CheckSquare className="h-2.5 w-2.5" />
+                {t.subtarefas_concluidas}/{t.subtarefas_count}
+              </Badge>
+            ) : null}
+          </div>
         </TableCell>
         <TableCell onClick={stop}>
           <button
             onClick={() => onOpenProjeto(t.projeto_id)}
-            className="text-sm hover:underline text-foreground/80"
+            className="text-sm hover:underline text-foreground/80 font-medium"
           >
             {t.projeto_nome}
           </button>
@@ -401,8 +461,28 @@ function TarefaTableRow({
         <TableCell>
           <AvatarStack items={t.responsaveis} max={3} size="sm" />
         </TableCell>
+        <TableCell>
+          {t.dependencia_terceiro ? (
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300"
+            >
+              Terceiros
+            </Badge>
+          ) : t.dependencia_nome ? (
+            <span className="text-xs text-foreground/80 font-medium">
+              {t.dependencia_nome}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground/60">—</span>
+          )}
+        </TableCell>
         <TableCell className="text-xs">
-          <PrazoBadge prazo={t.prazo} concluida={t.status === "concluida"} />
+          {isAcompanhamento && !t.prazo ? (
+            <span className="text-[11px] text-muted-foreground italic">Sem prazo</span>
+          ) : (
+            <PrazoBadge prazo={t.prazo} concluida={t.status === "concluida"} />
+          )}
         </TableCell>
         <TableCell>
           <PrioBadge p={t.prioridade} />
@@ -416,7 +496,7 @@ function TarefaTableRow({
       {expanded && hasDescricao && (
         <TableRow className="bg-muted/20 hover:bg-muted/20">
           <TableCell />
-          <TableCell colSpan={7} className="py-3">
+          <TableCell colSpan={8} className="py-3">
             <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
               {t.descricao}
             </p>
@@ -458,14 +538,12 @@ function FSelect({
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-40 h-9">
+      <SelectTrigger className="w-36 h-9">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         {!hideAll && (
-          <SelectItem value="all">
-            {allLabel ?? `Todos — ${placeholder}`}
-          </SelectItem>
+          <SelectItem value="all">{allLabel ?? `Todos — ${placeholder}`}</SelectItem>
         )}
         {options.map((o) => (
           <SelectItem key={o.value} value={o.value}>
@@ -476,6 +554,3 @@ function FSelect({
     </Select>
   );
 }
-
-// Re-export so consumers don't need a separate import path.
-export type { TarefaStatus };

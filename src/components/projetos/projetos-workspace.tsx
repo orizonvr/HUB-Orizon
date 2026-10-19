@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
   useSuspenseQuery,
+  useQuery,
   queryOptions,
   useMutation,
   useQueryClient,
@@ -70,6 +71,7 @@ import {
   listProjetosByTipo,
   listProfiles,
   updateProjeto,
+  listPipelineEstagios,
   type Profile,
   type Projeto,
 } from "@/lib/projetos.functions";
@@ -93,6 +95,7 @@ import { ProjectSheet } from "@/components/ma/project-sheet";
 import { NewProjectDialog } from "@/components/ma/new-project-dialog";
 import { CompararTargets } from "@/components/projetos/comparar-targets";
 import { EditarEmMassa } from "@/components/projetos/editar-em-massa";
+import { GerenciarEstagiosDialog } from "@/components/projetos/gerenciar-estagios-dialog";
 import { TarefasWorkspaceView } from "@/components/tarefas/tarefas-workspace-view";
 import { NovaTarefaDialog } from "@/components/tarefas/nova-tarefa-dialog";
 import { useAuth } from "@/hooks/use-auth";
@@ -162,7 +165,32 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
   };
   const clearCompare = () => setCompareIds([]);
 
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isAdminLider = profile?.role === "admin" || profile?.role === "lider";
+  const [showEstagiosModal, setShowEstagiosModal] = useState(false);
+
+  const listEstagiosFn = useServerFn(listPipelineEstagios);
+  const estagiosQ = useQuery({
+    queryKey: ["pipeline-estagios", config.tipo],
+    queryFn: () => listEstagiosFn({ data: { tipo: config.tipo } }),
+  });
+  const dynamicEstagios = useMemo(() => {
+    if (estagiosQ.data?.estagios && estagiosQ.data.estagios.length > 0) {
+      return estagiosQ.data.estagios;
+    }
+    return config.estagios;
+  }, [estagiosQ.data, config.estagios]);
+
+  const activeConfig: ProjetoConfig = useMemo(() => {
+    return {
+      ...config,
+      estagios: dynamicEstagios,
+      estagioLabels: Object.fromEntries(
+        dynamicEstagios.map((s: { key: string; label: string }) => [s.key, s.label]),
+      ),
+    };
+  }, [config, dynamicEstagios]);
+
   const [mainView, setMainView] = useState<"projetos" | "tarefas">(() => {
     if (typeof window === "undefined") return "projetos";
     return new URLSearchParams(window.location.search).get("view") === "tarefas"
@@ -319,17 +347,28 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
               </ToggleGroup>
             )}
             {mainView === "projetos" && (
-              <Button onClick={() => setShowNew(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Novo projeto
-              </Button>
+              <div className="flex items-center gap-2">
+                {isAdminLider && view === "kanban" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowEstagiosModal(true)}
+                  >
+                    <Columns3 className="h-4 w-4 mr-1" />
+                    Colunas do Kanban
+                  </Button>
+                )}
+                <Button onClick={() => setShowNew(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Novo projeto
+                </Button>
+              </div>
             )}
           </div>
         </div>
 
         {mainView === "tarefas" && (
           <TarefasWorkspaceView
-            config={config}
+            config={activeConfig}
             profiles={profiles}
             projetos={projetos.map((p) => ({ id: p.id, nome: p.nome, tipo: p.tipo }))}
             currentUserId={user?.id ?? null}
@@ -360,7 +399,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
               value={filterEstagio}
               onChange={setFilterEstagio}
               placeholder="Estágio"
-              options={config.estagios.map((s) => ({
+              options={activeConfig.estagios.map((s) => ({
                 value: s.key,
                 label: s.label,
               }))}
@@ -451,7 +490,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
             </div>
             <div className="hidden md:block">
               <KanbanView
-                config={config}
+                config={activeConfig}
                 projetos={filtered}
                 profileMap={profileMap}
                 onOpen={setOpenId}
@@ -462,7 +501,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
         )}
         {view === "table" && filtered.length > 0 && (
           <TableView
-            config={config}
+            config={activeConfig}
             projetos={filtered}
             profileMap={profileMap}
             onOpen={setOpenId}
@@ -472,7 +511,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
         )}
         {view === "cards" && filtered.length > 0 && (
           <CardsView
-            config={config}
+            config={activeConfig}
             projetos={filtered}
             profileMap={profileMap}
             onOpen={setOpenId}
@@ -512,14 +551,14 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
           onOpenChange={setShowCompare}
           projetos={filtered.filter((p) => compareIds.includes(p.id))}
           profilesById={profileMap}
-          config={config}
+          config={activeConfig}
         />
         <EditarEmMassa
           open={showBulkEdit}
           onOpenChange={setShowBulkEdit}
           ids={compareIds}
           profiles={profiles}
-          config={config}
+          config={activeConfig}
           onApplied={() => {
             qc.invalidateQueries({ queryKey: [config.queryKey] });
             clearCompare();
@@ -531,7 +570,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
 
 
         <ProjectSheet
-          config={config}
+          config={activeConfig}
           projectId={openId}
           initialTab={initialSheetTab}
           profiles={profiles}
@@ -541,7 +580,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
           }}
         />
         <NewProjectDialog
-          config={config}
+          config={activeConfig}
           open={showNew}
           onOpenChange={setShowNew}
           profiles={profiles}
@@ -560,6 +599,16 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
           defaultResponsavelId={tarefaProjeto?.responsavel_id}
           onCreated={() => {
             qc.invalidateQueries({ queryKey: ["tarefas"] });
+            qc.invalidateQueries({ queryKey: [config.queryKey] });
+          }}
+        />
+        <GerenciarEstagiosDialog
+          open={showEstagiosModal}
+          onOpenChange={setShowEstagiosModal}
+          tipo={config.tipo}
+          projetos={projetos}
+          onEstagiosChanged={() => {
+            estagiosQ.refetch();
             qc.invalidateQueries({ queryKey: [config.queryKey] });
           }}
         />
@@ -873,6 +922,8 @@ type SortKey =
   | "percentual_orizon"
   | "valor_transacao_mm"
   | "ebitda_2025"
+  | "sinergias_estimadas"
+  | "capex_estimado"
   | "ebitda_alvo"
   | "multiplo_ev_ebitda"
   | "tir_estimada"
@@ -904,6 +955,8 @@ function TableView({
   const [colOrizon, setColOrizon] = useState(true);
   const [colTransacao, setColTransacao] = useState(true);
   const [colEbitda2025, setColEbitda2025] = useState(true);
+  const [colSinergias, setColSinergias] = useState(false);
+  const [colCapex, setColCapex] = useState(false);
   const pageSize = 20;
 
   const sorted = useMemo(() => {
@@ -947,6 +1000,8 @@ function TableView({
       [showMaCols && colOrizon, "% Orizon", (p) => String(p.percentual_orizon ?? "")],
       [showMaCols && colTransacao, "Valor Transação (R$ MM)", (p) => String(p.valor_transacao_mm ?? "")],
       [showMaCols && colEbitda2025, "EBITDA 2025 (R$ MM)", (p) => String(p.ebitda_2025 ?? "")],
+      [showMaCols && colSinergias, "Sinergias (R$)", (p) => String(p.sinergias_estimadas ?? "")],
+      [showMaCols && colCapex, "CAPEX Estimado (R$)", (p) => String(p.capex_estimado ?? "")],
     ];
     const header = [
       "Nome",
@@ -996,7 +1051,14 @@ function TableView({
   };
 
   const visibleMaCols =
-    (showMaCols ? Number(colVolume) + Number(colOrizon) + Number(colTransacao) + Number(colEbitda2025) : 0);
+    (showMaCols
+      ? Number(colVolume) +
+        Number(colOrizon) +
+        Number(colTransacao) +
+        Number(colEbitda2025) +
+        Number(colSinergias) +
+        Number(colCapex)
+      : 0);
   const colSpan =
     6 + config.extraColumns.length + 4 + (showSubcat ? 1 : 0) + visibleMaCols;
 
@@ -1042,6 +1104,18 @@ function TableView({
                   onCheckedChange={(v) => setColEbitda2025(!!v)}
                 >
                   EBITDA 2025
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={colSinergias}
+                  onCheckedChange={(v) => setColSinergias(!!v)}
+                >
+                  Sinergias Estimadas
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={colCapex}
+                  onCheckedChange={(v) => setColCapex(!!v)}
+                >
+                  CAPEX Estimado
                 </DropdownMenuCheckboxItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1094,6 +1168,16 @@ function TableView({
             {showMaCols && colEbitda2025 && (
               <SortHead k="ebitda_2025" sk={sortKey} sd={sortDir} onSort={toggleSort} className="text-right">
                 EBITDA 2025
+              </SortHead>
+            )}
+            {showMaCols && colSinergias && (
+              <SortHead k="sinergias_estimadas" sk={sortKey} sd={sortDir} onSort={toggleSort} className="text-right">
+                Sinergias
+              </SortHead>
+            )}
+            {showMaCols && colCapex && (
+              <SortHead k="capex_estimado" sk={sortKey} sd={sortDir} onSort={toggleSort} className="text-right">
+                CAPEX
               </SortHead>
             )}
             {config.extraColumns.map((c) => (
@@ -1186,6 +1270,16 @@ function TableView({
                 {showMaCols && colEbitda2025 && (
                   <TableCell className="text-right text-sm">
                     {formatValorTransacaoMM(p.ebitda_2025) ?? <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                )}
+                {showMaCols && colSinergias && (
+                  <TableCell className="text-right text-sm">
+                    {p.sinergias_estimadas != null ? formatBRLFull(p.sinergias_estimadas) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                )}
+                {showMaCols && colCapex && (
+                  <TableCell className="text-right text-sm">
+                    {p.capex_estimado != null ? formatBRLFull(p.capex_estimado) : <span className="text-muted-foreground">—</span>}
                   </TableCell>
                 )}
                 {config.extraColumns.map((c) => (

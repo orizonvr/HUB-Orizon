@@ -36,6 +36,8 @@ import {
   ChevronRight,
   ChevronDown,
   Upload,
+  Bookmark,
+  CheckSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -51,9 +53,8 @@ import {
   type TarefaComContexto,
   type TarefaPrioridade,
   type TarefaStatus,
+  type TarefaTipo,
 } from "@/lib/tarefas-types";
-import { avatarBgStyle } from "@/lib/format";
-import { initials } from "@/lib/ma-utils";
 import { NovaTarefaDialog } from "@/components/tarefas/nova-tarefa-dialog";
 import { NovaRodadaDrawer } from "@/components/tarefas/nova-rodada-drawer";
 import { ImportPlannerDialog } from "@/components/tarefas/import-planner-dialog";
@@ -101,29 +102,40 @@ function TarefasPage() {
   })();
 
   const [escopo, setEscopo] = useState<Escopo>(initialEscopo);
-  const [search, setSearch] = useState("");
-  const [fTipo, setFTipo] = useState<string>("all");
+  const [fTipo, setFTipo] = useState<string>("all"); // "ma" | "novos_negocios" | "all"
+  const [fClassificacao, setFClassificacao] = useState<string>("all"); // "tarefa" | "acompanhamento" | "all"
+  const [fDep, setFDep] = useState<string>("all"); // "com_dep" | "terceiros" | "sem_dep" | "all"
   const [fResp, setFResp] = useState<string>(initialResp);
   const [fStatus, setFStatus] = useState<string>("ativas");
   const [fPrio, setFPrio] = useState<string>("all");
-  const [fPrazo, setFPrazo] = useState<PrazoFilter>("todos");
   const [fOrigem, setFOrigem] = useState<string>("all");
+  const [fPrazo, setFPrazo] = useState<PrazoFilter>("todos");
+  const [search, setSearch] = useState("");
   const [showNew, setShowNew] = useState(false);
   const [showRodada, setShowRodada] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const setEscopoUrl = (e: Escopo) => {
-    setEscopo(e);
+  const setEscopoUrl = (val: Escopo) => {
+    setEscopo(val);
     if (typeof window === "undefined") return;
     const url = new URL(window.location.href);
-    if (e === "minhas") url.searchParams.delete("escopo");
-    else url.searchParams.set("escopo", e);
+    if (val === "minhas") url.searchParams.delete("escopo");
+    else url.searchParams.set("escopo", val);
+    window.history.replaceState(null, "", url.toString());
+  };
+
+  const setRespUrl = (val: string) => {
+    setFResp(val);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (val === "all") url.searchParams.delete("resp");
+    else url.searchParams.set("resp", val);
     window.history.replaceState(null, "", url.toString());
   };
 
   const tarefasQ = useQuery({
-    queryKey: ["tarefas", "tipo", null],
+    queryKey: ["tarefas"],
     queryFn: () => tarefasFn({ data: { tipo: null } }),
   });
   const projsQ = useQuery({
@@ -143,21 +155,23 @@ function TarefasPage() {
   const session = useSessionCompleted();
   const { modo, setModo } = useViewModo();
 
-
-
   const filtered = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const qq = search.trim().toLowerCase();
-    return tarefas.filter((t) => {
+    const result = tarefas.filter((t) => {
       if (escopo === "minhas" && !(user?.id && t.responsavel_ids.includes(user.id))) return false;
       if (fTipo !== "all" && t.projeto_tipo !== fTipo) return false;
+      if (fClassificacao !== "all" && t.tipo !== fClassificacao) return false;
+      if (fDep === "terceiros" && !t.dependencia_terceiro) return false;
+      if (fDep === "com_dep" && !t.dependencia_terceiro && !t.dependencia_id) return false;
+      if (fDep === "sem_dep" && (t.dependencia_terceiro || t.dependencia_id)) return false;
+
       if (qq && !`${t.titulo} ${t.projeto_nome}`.toLowerCase().includes(qq))
         return false;
       if (fResp !== "all" && !t.responsavel_ids.includes(fResp)) return false;
       if (fStatus === "ativas") {
         const isActive = t.status === "pendente" || t.status === "em_andamento";
-        // Keep just-completed rows visible in "Ativas" until reload.
         if (!isActive && !session.isSticky(t.id)) return false;
       } else if (fStatus !== "all" && t.status !== fStatus) return false;
       if (fPrio !== "all" && t.prioridade !== fPrio) return false;
@@ -175,12 +189,32 @@ function TarefasPage() {
       }
       return true;
     });
-  }, [tarefas, search, fTipo, fResp, fStatus, fPrio, fOrigem, fPrazo, escopo, user?.id, session]);
+
+    // Destaca acompanhamentos no topo
+    return result.sort((a, b) => {
+      if (a.tipo === "acompanhamento" && b.tipo !== "acompanhamento") return -1;
+      if (a.tipo !== "acompanhamento" && b.tipo === "acompanhamento") return 1;
+      return 0;
+    });
+  }, [
+    tarefas,
+    search,
+    fTipo,
+    fClassificacao,
+    fDep,
+    fResp,
+    fStatus,
+    fPrio,
+    fOrigem,
+    fPrazo,
+    escopo,
+    user?.id,
+    session,
+  ]);
 
   const onOpenProjeto = (t: TarefaComContexto) => {
     const dest = t.projeto_tipo === "ma" ? "/ma" : "/novos-negocios";
     navigate({ to: dest });
-    // Defer event so the workspace mounts first.
     setTimeout(() => {
       window.dispatchEvent(
         new CustomEvent("orizon:open-projeto", {
@@ -196,7 +230,7 @@ function TarefasPage() {
   const loading = tarefasQ.isLoading || profsQ.isLoading || projsQ.isLoading;
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-4 py-8 md:px-8 md:py-10 space-y-5">
+    <div className="mx-auto w-full max-w-350 px-4 py-8 md:px-8 md:py-10 space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tarefas</h1>
@@ -219,17 +253,25 @@ function TarefasPage() {
             <ToggleGroupItem value="todas">Todas</ToggleGroupItem>
           </ToggleGroup>
           <ViewModoToggle value={modo} onChange={setModo} />
-          <Button variant="outline" onClick={() => setShowRodada(true)}>
+          {isAdminLider && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowImport(true)}
+            >
+              <Upload className="h-4 w-4 mr-1" />
+              Importar Planner
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowRodada(true)}
+          >
             <CalendarPlus className="h-4 w-4 mr-1" />
             Reunião de Pipeline
           </Button>
-          {profile?.role === "admin" && (
-            <Button variant="outline" onClick={() => setShowImport(true)}>
-              <Upload className="h-4 w-4 mr-1" />
-              Importar do Planner
-            </Button>
-          )}
-          <Button onClick={() => setShowNew(true)}>
+          <Button size="sm" onClick={() => setShowNew(true)}>
             <Plus className="h-4 w-4 mr-1" />
             Nova tarefa
           </Button>
@@ -238,7 +280,7 @@ function TarefasPage() {
 
       <Card className="p-3">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-44">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               value={search}
@@ -248,19 +290,40 @@ function TarefasPage() {
             />
           </div>
           <FSelect
+            value={fClassificacao}
+            onChange={setFClassificacao}
+            placeholder="Classificação"
+            options={[
+              { value: "tarefa", label: "Tarefas Padrão" },
+              { value: "acompanhamento", label: "Acompanhamentos" },
+            ]}
+            allLabel="Todas classificações"
+          />
+          <FSelect
+            value={fDep}
+            onChange={setFDep}
+            placeholder="Dependência"
+            options={[
+              { value: "com_dep", label: "Com dependência" },
+              { value: "terceiros", label: "Terceiros" },
+              { value: "sem_dep", label: "Sem dependência" },
+            ]}
+            allLabel="Todas dependências"
+          />
+          <FSelect
             value={fTipo}
             onChange={setFTipo}
-            placeholder="Tipo"
+            placeholder="Pipeline"
             options={[
               { value: "ma", label: "M&A" },
               { value: "novos_negocios", label: "Novos Negócios" },
             ]}
-            allLabel="Todos os tipos"
+            allLabel="Todos os pipelines"
           />
           {escopo !== "minhas" && (
             <FSelect
               value={fResp}
-              onChange={setFResp}
+              onChange={setRespUrl}
               placeholder="Responsável"
               options={profiles.map((p) => ({
                 value: p.id,
@@ -340,6 +403,7 @@ function TarefasPage() {
                 <TableHead>Tarefa</TableHead>
                 <TableHead>Projeto</TableHead>
                 <TableHead>Responsável</TableHead>
+                <TableHead>Dependência</TableHead>
                 <TableHead>Prazo</TableHead>
                 <TableHead>Prioridade</TableHead>
                 <TableHead>Status</TableHead>
@@ -397,7 +461,6 @@ function TarefasPage() {
         />
       )}
 
-
       <NovaTarefaDialog
         open={showNew}
         onOpenChange={setShowNew}
@@ -410,13 +473,11 @@ function TarefasPage() {
         profiles={profiles}
         defaultResponsavelId={user?.id ?? null}
       />
-      {profile?.role === "admin" && (
-        <ImportPlannerDialog
-          open={showImport}
-          onOpenChange={setShowImport}
-          projetos={projetos}
-        />
-      )}
+      <ImportPlannerDialog
+        open={showImport}
+        onOpenChange={setShowImport}
+        projetos={projsQ.data?.projetos ?? []}
+      />
     </div>
   );
 }
@@ -475,13 +536,17 @@ function GlobalTarefaRow({
   };
 
   const isConcluida = t.status === "concluida";
+  const isAcompanhamento = t.tipo === "acompanhamento";
   const dimmed = isConcluida || t.status === "cancelada";
   const hasDescricao = !!(t.descricao && t.descricao.trim().length > 0);
   const stop = (e: React.MouseEvent) => e.stopPropagation();
+
   return (
     <>
       <TableRow
-        className={`cursor-pointer ${dimmed ? "opacity-60" : ""}`}
+        className={`cursor-pointer ${dimmed ? "opacity-60" : ""} ${
+          isAcompanhamento ? "bg-blue-50/20 dark:bg-blue-950/10" : ""
+        }`}
         onClick={() => openTarefa(t.id)}
       >
         <TableCell className="w-8 p-0 pl-2" onClick={stop}>
@@ -507,16 +572,36 @@ function GlobalTarefaRow({
           />
         </TableCell>
         <TableCell
-          className={`font-medium max-w-[320px] truncate ${
+          className={`font-medium max-w-85 truncate ${
             isConcluida ? "line-through" : ""
           }`}
         >
-          {t.titulo}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {isAcompanhamento && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200"
+              >
+                <Bookmark className="h-2.5 w-2.5 mr-0.5 inline" /> Acompanhamento
+              </Badge>
+            )}
+            <span className="truncate">{t.titulo}</span>
+            {t.subtarefas_count && t.subtarefas_count > 0 ? (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0 text-muted-foreground gap-1"
+                title={`${t.subtarefas_concluidas} de ${t.subtarefas_count} subtarefas concluídas`}
+              >
+                <CheckSquare className="h-2.5 w-2.5" />
+                {t.subtarefas_concluidas}/{t.subtarefas_count}
+              </Badge>
+            ) : null}
+          </div>
         </TableCell>
         <TableCell onClick={stop}>
           <button
             onClick={() => onOpenProjeto(t)}
-            className="text-sm hover:underline text-foreground/80"
+            className="text-sm hover:underline text-foreground/80 font-medium"
           >
             {t.projeto_nome}
             <span className="ml-1 text-[10px] text-muted-foreground">
@@ -527,8 +612,28 @@ function GlobalTarefaRow({
         <TableCell>
           <AvatarStack items={t.responsaveis} max={3} size="sm" />
         </TableCell>
+        <TableCell>
+          {t.dependencia_terceiro ? (
+            <Badge
+              variant="outline"
+              className="text-[10px] bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300"
+            >
+              Terceiros
+            </Badge>
+          ) : t.dependencia_nome ? (
+            <span className="text-xs text-foreground/80 font-medium">
+              {t.dependencia_nome}
+            </span>
+          ) : (
+            <span className="text-xs text-muted-foreground/60">—</span>
+          )}
+        </TableCell>
         <TableCell className="text-xs">
-          <PrazoBadge prazo={t.prazo} concluida={isConcluida} />
+          {isAcompanhamento && !t.prazo ? (
+            <span className="text-[11px] text-muted-foreground italic">Sem prazo</span>
+          ) : (
+            <PrazoBadge prazo={t.prazo} concluida={isConcluida} />
+          )}
         </TableCell>
         <TableCell>
           <PrioBadge p={t.prioridade} />
@@ -545,7 +650,7 @@ function GlobalTarefaRow({
       {expanded && hasDescricao && (
         <TableRow className="bg-muted/20 hover:bg-muted/20">
           <TableCell />
-          <TableCell colSpan={8} className="py-3">
+          <TableCell colSpan={9} className="py-3">
             <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
               {t.descricao}
             </p>
@@ -587,14 +692,12 @@ function FSelect({
 }) {
   return (
     <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-[160px] h-9">
+      <SelectTrigger className="w-36 h-9">
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
         {!hideAll && (
-          <SelectItem value="all">
-            {allLabel ?? `Todos — ${placeholder}`}
-          </SelectItem>
+          <SelectItem value="all">{allLabel ?? `Todos — ${placeholder}`}</SelectItem>
         )}
         {options.map((o) => (
           <SelectItem key={o.value} value={o.value}>

@@ -841,6 +841,36 @@ function FinTab({
             prefix="R$"
             onSave={(v) => save({ sinergias_estimadas: v })}
           />
+          <NumberField
+            label="CAPEX estimado (R$)"
+            value={projeto.capex_estimado}
+            prefix="R$"
+            onSave={(v) => save({ capex_estimado: v })}
+          />
+          <NumberField
+            label="TIR estimada (%)"
+            value={projeto.tir_estimada}
+            suffix="%"
+            onSave={(v) => save({ tir_estimada: v })}
+          />
+          <NumberField
+            label="Payback estimado (anos)"
+            value={projeto.payback_anos}
+            suffix="anos"
+            onSave={(v) => save({ payback_anos: v })}
+          />
+          <NumberField
+            label="Receita Projetada (R$)"
+            value={projeto.receita_projetada_ano3}
+            prefix="R$"
+            onSave={(v) => save({ receita_projetada_ano3: v })}
+          />
+          <NumberField
+            label="TAM Mercado Endereçável (R$)"
+            value={projeto.tam}
+            prefix="R$"
+            onSave={(v) => save({ tam: v })}
+          />
         </div>
       </div>
       <Separator />

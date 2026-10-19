@@ -3,16 +3,27 @@ import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { CalendarIcon, ExternalLink, Loader2, Check, X } from "lucide-react";
+import {
+  CalendarIcon,
+  ExternalLink,
+  Loader2,
+  Check,
+  X,
+  Bookmark,
+  Users,
+  AlertCircle,
+  FileText,
+  MessageSquare,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -39,12 +50,16 @@ import { listProfiles } from "@/lib/projetos.functions";
 import {
   PRIORIDADE_LABEL,
   STATUS_LABEL,
+  TIPO_LABEL,
   type TarefaComContexto,
   type TarefaPrioridade,
   type TarefaStatus,
+  type TarefaTipo,
 } from "@/lib/tarefas-types";
 import { isResponsavelElegivel } from "@/lib/projetos-config";
 import { PrazoBadge } from "./tarefas-tab";
+import { TarefaChat } from "./tarefa-chat";
+import { TarefaSubtarefas } from "./tarefa-subtarefas";
 
 type Props = {
   tarefaId: string | null;
@@ -78,22 +93,20 @@ export function TarefaDrawer({ tarefaId, onOpenChange }: Props) {
   const tarefa = q.data?.tarefa as TarefaComContexto | undefined;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-120 p-0 flex flex-col"
-      >
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-full sm:max-w-4xl md:max-w-5xl h-[92vh] max-h-[92vh] p-0 flex flex-col gap-0 overflow-hidden sm:rounded-xl">
         {q.isLoading || !tarefa ? (
           <div className="flex items-center justify-center flex-1">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <DrawerBody
+          <DialogBody
             tarefa={tarefa}
             profiles={(profilesQ.data?.profiles ?? [])
               .filter(
                 (p) =>
                   (tarefa.responsavel_ids ?? []).includes(p.id) ||
+                  tarefa.dependencia_id === p.id ||
                   isResponsavelElegivel(p),
               )
               .map((p) => ({
@@ -124,22 +137,12 @@ export function TarefaDrawer({ tarefaId, onOpenChange }: Props) {
             }}
           />
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-type Patch = {
-  titulo?: string;
-  status?: TarefaStatus;
-  prioridade?: TarefaPrioridade;
-  responsavel_ids?: string[];
-  prazo?: string;
-  descricao?: string | null;
-  // origem handled separately (origem + data_reuniao)
-};
-
-function DrawerBody({
+function DialogBody({
   tarefa,
   profiles,
   onUpdate,
@@ -150,29 +153,16 @@ function DrawerBody({
   onUpdate: (patch: Record<string, unknown>) => Promise<void>;
   onNavigateToProjeto: () => void;
 }) {
-  // Local mirror of server state (kept in sync when tarefa updates).
   const [titulo, setTitulo] = useState(tarefa.titulo);
-  const [descricao, setDescricao] = useState(tarefa.descricao ?? "");
   const isEditingTituloRef = useRef(false);
-  const isEditingDescricaoRef = useRef(false);
-
-  // Track snapshot from server to detect external updates.
-  const serverSnapshot = useRef({
-    titulo: tarefa.titulo,
-    descricao: tarefa.descricao ?? "",
-  });
+  const serverSnapshot = useRef({ titulo: tarefa.titulo });
 
   useEffect(() => {
     if (!isEditingTituloRef.current && tarefa.titulo !== serverSnapshot.current.titulo) {
       setTitulo(tarefa.titulo);
       serverSnapshot.current.titulo = tarefa.titulo;
     }
-    const desc = tarefa.descricao ?? "";
-    if (!isEditingDescricaoRef.current && desc !== serverSnapshot.current.descricao) {
-      setDescricao(desc);
-      serverSnapshot.current.descricao = desc;
-    }
-  }, [tarefa.titulo, tarefa.descricao]);
+  }, [tarefa.titulo]);
 
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -183,10 +173,10 @@ function DrawerBody({
     savedTimerRef.current = setTimeout(() => setSaveState("idle"), 1500);
   };
 
-  const save = async (patch: Patch | Record<string, unknown>) => {
+  const save = async (patch: Record<string, unknown>) => {
     setSaveState("saving");
     try {
-      await onUpdate(patch as Record<string, unknown>);
+      await onUpdate(patch);
       flashSaved();
     } catch (e) {
       setSaveState("error");
@@ -194,10 +184,7 @@ function DrawerBody({
     }
   };
 
-  // Debounced save for text inputs (titulo/descricao).
-  const debouncers = useRef<Record<string, ReturnType<typeof setTimeout> | null>>(
-    {},
-  );
+  const debouncers = useRef<Record<string, ReturnType<typeof setTimeout> | null>>({});
   const debouncedSave = (key: string, patch: Record<string, unknown>) => {
     if (debouncers.current[key]) clearTimeout(debouncers.current[key]!);
     debouncers.current[key] = setTimeout(() => {
@@ -212,7 +199,6 @@ function DrawerBody({
     };
   }, []);
 
-  // ---------- handlers ----------
   const onTituloChange = (v: string) => {
     setTitulo(v);
     debouncedSave("titulo", { titulo: v });
@@ -234,200 +220,336 @@ function DrawerBody({
     }
   };
 
-  const onDescricaoChange = (v: string) => {
-    setDescricao(v);
-    debouncedSave("descricao", { descricao: v.length === 0 ? null : v });
-  };
-
-  const onDescricaoBlur = () => {
-    isEditingDescricaoRef.current = false;
-    if (debouncers.current.descricao) {
-      clearTimeout(debouncers.current.descricao);
-      debouncers.current.descricao = null;
-    }
-    const clean = descricao.trim();
-    const current = (serverSnapshot.current.descricao ?? "").trim();
-    if (clean !== current) {
-      serverSnapshot.current.descricao = clean;
-      void save({ descricao: clean.length === 0 ? null : clean });
-    }
-  };
-
   const onStatusChange = (v: TarefaStatus) => void save({ status: v });
   const onPrioChange = (v: TarefaPrioridade) => void save({ prioridade: v });
+  const onTipoChange = (v: TarefaTipo) => void save({ tipo: v });
   const onResponsaveisChange = (ids: string[]) =>
     void save({ responsavel_ids: ids });
+
+  const onDependenciaChange = (value: string) => {
+    if (value === "nenhuma") {
+      void save({ dependencia_id: null, dependencia_terceiro: false });
+    } else if (value === "terceiros") {
+      void save({ dependencia_id: null, dependencia_terceiro: true });
+    } else {
+      void save({ dependencia_id: value, dependencia_terceiro: false });
+    }
+  };
+
+  const currentDependenciaValue = useMemo(() => {
+    if (tarefa.dependencia_terceiro) return "terceiros";
+    if (tarefa.dependencia_id) return tarefa.dependencia_id;
+    return "nenhuma";
+  }, [tarefa.dependencia_terceiro, tarefa.dependencia_id]);
+
   const onPrazoChange = (date: Date | undefined) => {
-    if (!date) return;
+    if (!date) {
+      void save({ prazo: null });
+      return;
+    }
     const iso = format(date, "yyyy-MM-dd");
     void save({ prazo: iso });
   };
 
   const isConcluida = tarefa.status === "concluida";
+  const isAcompanhamento = tarefa.tipo === "acompanhamento";
 
   const criadoPorNome = useMemo(() => {
     const p = profiles.find((x) => x.id === tarefa.criado_por_id);
     return p?.label ?? "—";
   }, [profiles, tarefa.criado_por_id]);
 
+  // Tab state for mobile responsiveness
+  const [mobileTab, setMobileTab] = useState<"detalhes" | "chat">("detalhes");
+
   return (
     <>
-      <SheetHeader className="px-5 py-4 border-b">
-        <div className="flex items-center justify-between gap-2">
-          <SheetTitle className="text-base font-semibold">
-            Editar tarefa
-          </SheetTitle>
-          <SaveIndicator state={saveState} />
-        </div>
-      </SheetHeader>
-
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
-        {/* Título */}
-        <div className="space-y-1.5">
-          <Label htmlFor="td-titulo" className="text-xs">
-            Título
-          </Label>
-          <Input
-            id="td-titulo"
-            value={titulo}
-            onFocus={() => {
-              isEditingTituloRef.current = true;
-            }}
-            onChange={(e) => onTituloChange(e.target.value)}
-            onBlur={onTituloBlur}
-            className={cn(
-              "text-base font-semibold h-10",
-              isConcluida && "line-through text-muted-foreground",
+      {/* Top Header */}
+      <DialogHeader className="px-5 py-3 border-b bg-card shrink-0">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <DialogTitle className="text-base font-semibold">
+              {tarefa.titulo || "Detalhes da Tarefa"}
+            </DialogTitle>
+            {isAcompanhamento && (
+              <Badge variant="secondary" className="gap-1 text-[11px] bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200">
+                <Bookmark className="h-3 w-3" /> Acompanhamento
+              </Badge>
             )}
-          />
-        </div>
-
-        {/* Status + Prioridade */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Status</Label>
-            <Select value={tarefa.status} onValueChange={(v) => onStatusChange(v as TarefaStatus)}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(STATUS_LABEL).map(([k, l]) => (
-                  <SelectItem key={k} value={k}>
-                    {l}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Prioridade</Label>
-            <Select
-              value={tarefa.prioridade}
-              onValueChange={(v) => onPrioChange(v as TarefaPrioridade)}
-            >
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(PRIORIDADE_LABEL).map(([k, l]) => (
-                  <SelectItem key={k} value={k}>
-                    {l}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Responsáveis */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Responsáveis</Label>
-          <MultiProfileSelect
-            options={profiles}
-            value={tarefa.responsavel_ids}
-            onChange={onResponsaveisChange}
-            placeholder="Selecione"
-          />
-        </div>
-
-        {/* Prazo */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Prazo</Label>
-          <div className="flex items-center gap-2">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="h-9 w-45 justify-start font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {tarefa.prazo
-                    ? format(new Date(tarefa.prazo + "T00:00:00"), "dd/MM/yyyy")
-                    : "Selecionar"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={
-                    tarefa.prazo ? new Date(tarefa.prazo + "T00:00:00") : undefined
-                  }
-                  onSelect={onPrazoChange}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
-            <span className="text-xs">
-              <PrazoBadge prazo={tarefa.prazo} concluida={isConcluida} />
-            </span>
-          </div>
-        </div>
-
-        {/* Projeto (read-only) */}
-        <div className="space-y-1.5">
-          <Label className="text-xs">Projeto</Label>
-          <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-muted/30">
-            <span className="text-sm truncate flex-1">{tarefa.projeto_nome}</span>
             <Badge variant="outline" className="text-[10px]">
-              {tarefa.projeto_tipo === "ma" ? "M&A" : "NN"}
+              {STATUS_LABEL[tarefa.status]}
+            </Badge>
+            <Badge variant="outline" className="text-[10px]">
+              {PRIORIDADE_LABEL[tarefa.prioridade]}
             </Badge>
           </div>
+          <div className="flex items-center gap-2 pr-6">
+            <SaveIndicator state={saveState} />
+          </div>
         </div>
 
-        {/* Descrição */}
-        <div className="space-y-1.5">
-          <Label htmlFor="td-desc" className="text-xs">
-            Observação
-          </Label>
-          <Textarea
-            id="td-desc"
-            value={descricao}
-            onFocus={() => {
-              isEditingDescricaoRef.current = true;
-            }}
-            onChange={(e) => onDescricaoChange(e.target.value)}
-            onBlur={onDescricaoBlur}
-            placeholder="Observação, contexto, links..."
-            rows={5}
-          />
+        {/* Mobile Tab Switcher */}
+        <div className="md:hidden pt-2">
+          <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as "detalhes" | "chat")}>
+            <TabsList className="grid w-full grid-cols-2 h-8">
+              <TabsTrigger value="detalhes" className="text-xs">
+                <FileText className="h-3.5 w-3.5 mr-1" /> Detalhes & Checklist
+              </TabsTrigger>
+              <TabsTrigger value="chat" className="text-xs">
+                <MessageSquare className="h-3.5 w-3.5 mr-1" /> Comentários
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
-      </div>
+      </DialogHeader>
 
-      {/* Rodapé */}
-      <div className="border-t px-5 py-3 space-y-2 bg-muted/20">
-        <div className="text-[11px] text-muted-foreground">
-          Criado por <span className="font-medium">{criadoPorNome}</span> em{" "}
-          {format(new Date(tarefa.created_at), "dd/MM/yyyy")}
-        </div>
-        <button
-          type="button"
-          onClick={onNavigateToProjeto}
-          className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+      {/* Main Split Panel Content */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
+        {/* Left Column: Form & Checklist */}
+        <div
+          className={cn(
+            "md:col-span-7 flex flex-col h-full overflow-y-auto p-5 space-y-4 border-r bg-background",
+            mobileTab === "chat" && "hidden md:flex",
+          )}
         >
-          <ExternalLink className="h-3 w-3" />
-          Projeto: {tarefa.projeto_nome}
-        </button>
+          {/* Título */}
+          <div className="space-y-1.5">
+            <Label htmlFor="td-titulo" className="text-xs font-medium">
+              Título da Tarefa
+            </Label>
+            <Input
+              id="td-titulo"
+              value={titulo}
+              onFocus={() => {
+                isEditingTituloRef.current = true;
+              }}
+              onChange={(e) => onTituloChange(e.target.value)}
+              onBlur={onTituloBlur}
+              className={cn(
+                "text-base font-semibold h-10",
+                isConcluida && "line-through text-muted-foreground",
+              )}
+            />
+          </div>
+
+          {/* Tipo (Padrão vs Acompanhamento) + Status + Prioridade */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Tipo</Label>
+              <Select
+                value={tarefa.tipo ?? "tarefa"}
+                onValueChange={(v) => onTipoChange(v as TarefaTipo)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TIPO_LABEL).map(([k, l]) => (
+                    <SelectItem key={k} value={k}>
+                      {l}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Status</Label>
+              <Select
+                value={tarefa.status}
+                onValueChange={(v) => onStatusChange(v as TarefaStatus)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(STATUS_LABEL).map(([k, l]) => (
+                    <SelectItem key={k} value={k}>
+                      {l}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Prioridade</Label>
+              <Select
+                value={tarefa.prioridade}
+                onValueChange={(v) => onPrioChange(v as TarefaPrioridade)}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(PRIORIDADE_LABEL).map(([k, l]) => (
+                    <SelectItem key={k} value={k}>
+                      {l}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Responsáveis e Dependência */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Responsáveis</Label>
+              <MultiProfileSelect
+                options={profiles}
+                value={tarefa.responsavel_ids}
+                onChange={onResponsaveisChange}
+                placeholder="Selecione os responsáveis"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center justify-between">
+                <span>Dependência</span>
+                {tarefa.dependencia_terceiro && (
+                  <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">
+                    Terceiros
+                  </Badge>
+                )}
+              </Label>
+              <Select
+                value={currentDependenciaValue}
+                onValueChange={onDependenciaChange}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Selecione dependência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhuma">Nenhuma dependência</SelectItem>
+                  <SelectItem value="terceiros">
+                    <span className="font-medium text-amber-600">Terceiros (Consultores / Regulatório / Outros)</span>
+                  </SelectItem>
+                  {profiles.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      Usuário: {p.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Prazo e Projeto */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium">Prazo</Label>
+                {isAcompanhamento && (
+                  <span className="text-[11px] text-muted-foreground">
+                    Opcional
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-9 flex-1 justify-start font-normal text-xs"
+                    >
+                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      {tarefa.prazo
+                        ? format(
+                            new Date(tarefa.prazo + "T00:00:00"),
+                            "dd/MM/yyyy",
+                          )
+                        : "Sem prazo definido"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={
+                        tarefa.prazo
+                          ? new Date(tarefa.prazo + "T00:00:00")
+                          : undefined
+                      }
+                      onSelect={onPrazoChange}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                    {tarefa.prazo && (
+                      <div className="p-2 border-t text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onPrazoChange(undefined)}
+                          className="h-7 text-xs text-destructive w-full"
+                        >
+                          Limpar prazo
+                        </Button>
+                      </div>
+                    )}
+                  </PopoverContent>
+                </Popover>
+                {tarefa.prazo && (
+                  <span className="text-xs">
+                    <PrazoBadge prazo={tarefa.prazo} concluida={isConcluida} />
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Projeto Vinculado</Label>
+              <div className="flex items-center gap-2 h-9 px-3 rounded-md border bg-muted/30">
+                <span className="text-xs truncate flex-1 font-medium">
+                  {tarefa.projeto_nome}
+                </span>
+                <Badge variant="outline" className="text-[10px]">
+                  {tarefa.projeto_tipo === "ma" ? "M&A" : "NN"}
+                </Badge>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={onNavigateToProjeto}
+                  className="h-6 w-6 text-primary"
+                  title="Abrir página do projeto"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Subtarefas (Checklist) */}
+          <div className="pt-2">
+            <TarefaSubtarefas tarefaId={tarefa.id} />
+          </div>
+
+          {/* Rodapé informativo */}
+          <div className="pt-3 border-t text-[11px] text-muted-foreground flex items-center justify-between">
+            <span>
+              Criado por <span className="font-medium text-foreground">{criadoPorNome}</span> em{" "}
+              {format(new Date(tarefa.created_at), "dd/MM/yyyy")}
+            </span>
+            <button
+              type="button"
+              onClick={onNavigateToProjeto}
+              className="inline-flex items-center gap-1 text-primary hover:underline"
+            >
+              <ExternalLink className="h-3 w-3" />
+              Ver no Projeto
+            </button>
+          </div>
+        </div>
+
+        {/* Right Column: WhatsApp-Style Comments Chat */}
+        <div
+          className={cn(
+            "md:col-span-5 flex flex-col h-full overflow-hidden p-3 md:p-4 bg-muted/10",
+            mobileTab === "detalhes" && "hidden md:flex",
+          )}
+        >
+          <TarefaChat tarefaId={tarefa.id} />
+        </div>
       </div>
     </>
   );
@@ -444,7 +566,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
   }
   if (state === "saved") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600">
+      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 font-medium">
         <Check className="h-3 w-3" />
         Salvo
       </span>
@@ -452,7 +574,7 @@ function SaveIndicator({ state }: { state: SaveState }) {
   }
   if (state === "error") {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-destructive">
+      <span className="inline-flex items-center gap-1 text-[11px] text-destructive font-medium">
         <X className="h-3 w-3" />
         Erro
       </span>

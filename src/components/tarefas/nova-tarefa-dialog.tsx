@@ -20,15 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Loader2, Bookmark } from "lucide-react";
 import { toast } from "sonner";
 import { createTarefa, listAllProjetosLite } from "@/lib/tarefas.functions";
-import { PRIORIDADE_LABEL, type TarefaPrioridade } from "@/lib/tarefas-types";
+import {
+  PRIORIDADE_LABEL,
+  TIPO_LABEL,
+  type TarefaPrioridade,
+  type TarefaTipo,
+} from "@/lib/tarefas-types";
 import type { Profile } from "@/lib/projetos.functions";
 import { MultiProfileSelect } from "@/components/ui/multi-profile-select";
 import { useSuspendParentModal } from "@/components/ma/nested-modal-context";
 import { isResponsavelElegivel } from "@/lib/projetos-config";
-
 
 type ProjetoTipo = "ma" | "novos_negocios";
 
@@ -70,11 +74,13 @@ export function NovaTarefaDialog({
   useSuspendParentModal(open);
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [tipo, setTipo] = useState<ProjetoTipo | "">("");
+  const [tipoProjeto, setTipoProjeto] = useState<ProjetoTipo | "">("");
+  const [tarefaTipo, setTarefaTipo] = useState<TarefaTipo>("tarefa");
   const [projetoId, setProjetoId] = useState<string>("");
   const [responsavelIds, setResponsavelIds] = useState<string[]>(
     defaultResponsavelId ? [defaultResponsavelId] : [],
   );
+  const [dependenciaValue, setDependenciaValue] = useState<string>("nenhuma");
   const [prazo, setPrazo] = useState<string>(plus7DaysISO());
   const [prioridade, setPrioridade] = useState<TarefaPrioridade>("media");
 
@@ -103,21 +109,22 @@ export function NovaTarefaDialog({
     if (!open) return;
     setTitulo("");
     setDescricao("");
+    setTarefaTipo("tarefa");
+    setDependenciaValue("nenhuma");
     setResponsavelIds(defaultResponsavelId ? [defaultResponsavelId] : []);
     setPrazo(plus7DaysISO());
     setPrioridade("media");
     if (projetoFixo) {
       setProjetoId(projetoFixo.id);
-      setTipo(tipoPadrao ?? projetoTipoMap.get(projetoFixo.id) ?? "");
+      setTipoProjeto(tipoPadrao ?? projetoTipoMap.get(projetoFixo.id) ?? "");
     } else {
       setProjetoId("");
-      setTipo(tipoPadrao ?? "");
+      setTipoProjeto(tipoPadrao ?? "");
     }
   }, [open, projetoFixo?.id, tipoPadrao, defaultResponsavelId, projetoTipoMap]);
 
-  const handleTipoChange = (v: ProjetoTipo) => {
-    setTipo(v);
-    // se já tinha um projeto e ele não é desse tipo, limpa
+  const handleTipoProjetoChange = (v: ProjetoTipo) => {
+    setTipoProjeto(v);
     if (projetoId && projetoTipoMap.get(projetoId) !== v) {
       setProjetoId("");
     }
@@ -126,18 +133,28 @@ export function NovaTarefaDialog({
   const qc = useQueryClient();
   const createFn = useServerFn(createTarefa);
   const mut = useMutation({
-    mutationFn: () =>
-      createFn({
+    mutationFn: () => {
+      const depTerceiro = dependenciaValue === "terceiros";
+      const depId =
+        !depTerceiro && dependenciaValue !== "nenhuma"
+          ? dependenciaValue
+          : null;
+
+      return createFn({
         data: {
           projeto_id: projetoId,
           titulo: titulo.trim(),
           descricao: descricao.trim() || null,
           responsavel_ids: responsavelIds,
-          prazo,
+          prazo: prazo ? prazo : null,
           prioridade,
           origem: "ad_hoc",
+          tipo: tarefaTipo,
+          dependencia_id: depId,
+          dependencia_terceiro: depTerceiro,
         },
-      }),
+      });
+    },
     onSuccess: () => {
       toast.success("Tarefa criada");
       qc.invalidateQueries({ queryKey: ["tarefas"] });
@@ -151,18 +168,19 @@ export function NovaTarefaDialog({
     onError: (e) => toast.error((e as Error).message),
   });
 
+  const isAcompanhamento = tarefaTipo === "acompanhamento";
   const canSubmit =
     titulo.trim().length > 0 &&
     projetoId.length > 0 &&
     responsavelIds.length > 0 &&
-    prazo.length === 10 &&
+    (isAcompanhamento || prazo.length === 10) &&
     !mut.isPending;
 
-  const projetosDisponiveis = tipo ? projetosByTipo[tipo] : [];
+  const projetosDisponiveis = tipoProjeto ? projetosByTipo[tipoProjeto] : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>Nova tarefa</DialogTitle>
           <DialogDescription>
@@ -171,17 +189,37 @@ export function NovaTarefaDialog({
               : "Atrele a tarefa a um projeto."}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <div className="space-y-3.5">
+          {/* Tipo de Tarefa (Padrão vs Acompanhamento) + Tipo de Projeto */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Tipo</Label>
+              <Label>Classificação</Label>
               <Select
-                value={tipo || undefined}
-                onValueChange={(v) => handleTipoChange(v as ProjetoTipo)}
+                value={tarefaTipo}
+                onValueChange={(v) => setTarefaTipo(v as TarefaTipo)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(TIPO_LABEL).map(([k, l]) => (
+                    <SelectItem key={k} value={k}>
+                      {l}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Pipeline</Label>
+              <Select
+                value={tipoProjeto || undefined}
+                onValueChange={(v) => handleTipoProjetoChange(v as ProjetoTipo)}
                 disabled={!!projetoFixo}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
+                  <SelectValue placeholder="Selecione o pipeline" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ma">M&amp;A</SelectItem>
@@ -189,34 +227,38 @@ export function NovaTarefaDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Projeto</Label>
-              {projetoFixo ? (
-                <Input value={projetoFixo.nome} disabled />
-              ) : (
-                <Select
-                  value={projetoId || undefined}
-                  onValueChange={setProjetoId}
-                  disabled={!tipo}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        tipo ? "Selecione o projeto" : "Selecione o tipo primeiro"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {projetosDisponiveis.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
           </div>
+
+          {/* Projeto */}
+          <div className="space-y-1.5">
+            <Label>Projeto</Label>
+            {projetoFixo ? (
+              <Input value={projetoFixo.nome} disabled className="bg-muted/40" />
+            ) : (
+              <Select
+                value={projetoId || undefined}
+                onValueChange={setProjetoId}
+                disabled={!tipoProjeto}
+              >
+                <SelectTrigger>
+                  <SelectValue
+                    placeholder={
+                      tipoProjeto ? "Selecione o projeto" : "Selecione o pipeline primeiro"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {projetosDisponiveis.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* Título */}
           <div className="space-y-1.5">
             <Label>Título</Label>
             <Input
@@ -226,15 +268,8 @@ export function NovaTarefaDialog({
               placeholder="Ex.: Revisar NBO com jurídico"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label>Descrição (opcional)</Label>
-            <Textarea
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Contexto, links, decisões…"
-              rows={3}
-            />
-          </div>
+
+          {/* Responsáveis e Dependência */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Responsáveis</Label>
@@ -244,20 +279,54 @@ export function NovaTarefaDialog({
                   .map((p) => ({ id: p.id, label: p.nome_completo }))}
                 value={responsavelIds}
                 onChange={setResponsavelIds}
-                placeholder="Selecione"
+                placeholder="Selecione responsáveis"
                 compact
               />
             </div>
+
             <div className="space-y-1.5">
-              <Label>Prazo</Label>
+              <Label>Dependência</Label>
+              <Select
+                value={dependenciaValue}
+                onValueChange={setDependenciaValue}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione dependência" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhuma">Nenhuma</SelectItem>
+                  <SelectItem value="terceiros">
+                    <span className="font-medium text-amber-600">Terceiros (Consultoria/Regulatório)</span>
+                  </SelectItem>
+                  {profiles.filter(isResponsavelElegivel).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.nome_completo}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Prazo e Prioridade */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label>Prazo</Label>
+                {isAcompanhamento && (
+                  <span className="text-[10px] text-muted-foreground">Opcional</span>
+                )}
+              </div>
               <Input
                 type="date"
                 value={prazo}
                 min={todayISO()}
                 onChange={(e) => setPrazo(e.target.value)}
+                placeholder={isAcompanhamento ? "Sem prazo" : undefined}
               />
             </div>
-            <div className="space-y-1.5 col-span-2">
+
+            <div className="space-y-1.5">
               <Label>Prioridade</Label>
               <Select
                 value={prioridade}
@@ -276,8 +345,20 @@ export function NovaTarefaDialog({
               </Select>
             </div>
           </div>
+
+          {/* Descrição / Primeiro comentário */}
+          <div className="space-y-1.5">
+            <Label>Observação inicial (opcional)</Label>
+            <Textarea
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              placeholder="Contexto, links ou primeiro comentário…"
+              rows={2}
+            />
+          </div>
         </div>
-        <DialogFooter>
+
+        <DialogFooter className="pt-2">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>

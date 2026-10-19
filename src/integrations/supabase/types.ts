@@ -561,6 +561,9 @@ export type Database = {
           responsavel_ids: string[]
           status: Database["public"]["Enums"]["tarefa_status"]
           titulo: string
+          tipo: "padrao" | "acompanhamento"
+          dependencia_id: string | null
+          dependencia_terceiro: boolean
           updated_at: string
         }
         Insert: {
@@ -577,6 +580,9 @@ export type Database = {
           responsavel_ids: string[]
           status?: Database["public"]["Enums"]["tarefa_status"]
           titulo: string
+          tipo?: "padrao" | "acompanhamento"
+          dependencia_id?: string | null
+          dependencia_terceiro?: boolean
           updated_at?: string
         }
         Update: {
@@ -593,6 +599,9 @@ export type Database = {
           responsavel_ids?: string[]
           status?: Database["public"]["Enums"]["tarefa_status"]
           titulo?: string
+          tipo?: "padrao" | "acompanhamento"
+          dependencia_id?: string | null
+          dependencia_terceiro?: boolean
           updated_at?: string
         }
         Relationships: [
@@ -604,6 +613,129 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tarefas_comentarios: {
+        Row: {
+          id: string
+          tarefa_id: string
+          autor_id: string
+          conteudo: string
+          criado_em: string
+        }
+        Insert: {
+          id?: string
+          tarefa_id: string
+          autor_id: string
+          conteudo: string
+          criado_em?: string
+        }
+        Update: {
+          id?: string
+          tarefa_id?: string
+          autor_id?: string
+          conteudo?: string
+          criado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_comentarios_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarefas_subtarefas: {
+        Row: {
+          id: string
+          tarefa_id: string
+          titulo: string
+          concluida: boolean
+          concluida_em: string | null
+          ordem: number
+          criado_por_id: string
+          criado_em: string
+        }
+        Insert: {
+          id?: string
+          tarefa_id: string
+          titulo: string
+          concluida?: boolean
+          concluida_em?: string | null
+          ordem?: number
+          criado_por_id: string
+          criado_em?: string
+        }
+        Update: {
+          id?: string
+          tarefa_id?: string
+          titulo?: string
+          concluida?: boolean
+          concluida_em?: string | null
+          ordem?: number
+          criado_por_id?: string
+          criado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarefas_subtarefas_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_subtarefas_criado_por_id_fkey"
+            columns: ["criado_por_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_estagios: {
+        Row: {
+          id: string
+          tipo: "ma" | "novos_negocios"
+          chave: string
+          label: string
+          ordem: number
+          ativo: boolean
+          cor: string | null
+          criado_em: string
+          atualizado_em: string
+        }
+        Insert: {
+          id?: string
+          tipo: "ma" | "novos_negocios"
+          chave: string
+          label: string
+          ordem?: number
+          ativo?: boolean
+          cor?: string | null
+          criado_em?: string
+          atualizado_em?: string
+        }
+        Update: {
+          id?: string
+          tipo?: "ma" | "novos_negocios"
+          chave?: string
+          label?: string
+          ordem?: number
+          ativo?: boolean
+          cor?: string | null
+          criado_em?: string
+          atualizado_em?: string
+        }
+        Relationships: []
       }
     }
     Views: {
