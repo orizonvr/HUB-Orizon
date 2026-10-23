@@ -31,6 +31,13 @@ import { globalSearch, type SearchResult } from "@/lib/search.functions";
 // Pages that don't know how to create a project (Dashboard, Documentos, etc.)
 // will redirect to M&A first.
 export const NEW_PROJECT_EVENT = "orizon:new-project";
+export const OPEN_SEARCH_EVENT = "orizon:open-search";
+
+export function emitOpenSearch() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(OPEN_SEARCH_EVENT));
+  }
+}
 
 function emitNewProject() {
   window.dispatchEvent(new CustomEvent(NEW_PROJECT_EVENT));
@@ -45,6 +52,13 @@ export function CommandPalette() {
   const navigate = useNavigate();
   const path = useRouterState({ select: (s) => s.location.pathname });
   const searchFn = useServerFn(globalSearch);
+
+  // ---- listen for external trigger to open search ----
+  useEffect(() => {
+    const handleOpen = () => setOpenSearch(true);
+    window.addEventListener(OPEN_SEARCH_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_SEARCH_EVENT, handleOpen);
+  }, []);
 
   // ---- keyboard shortcuts ----
   useEffect(() => {

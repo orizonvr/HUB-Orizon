@@ -743,7 +743,7 @@ function KanbanView({
           return (
             <div
               key={s.key}
-              className="w-72 shrink-0 bg-muted/30 rounded-lg p-2"
+              className="w-72 shrink-0 bg-muted/25 border border-border/70 rounded-xl p-2.5 flex flex-col min-h-105"
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => {
                 const id = e.dataTransfer.getData("text/projeto-id");
@@ -753,18 +753,25 @@ function KanbanView({
                 }
               }}
             >
-              <div className="px-2 py-1.5 mb-2">
+              <div className="px-1.5 py-1 mb-2">
                 <div className="flex items-center justify-between">
-                  <div className="font-semibold text-sm">{s.label}</div>
-                  <Badge variant="secondary" className="text-xs">
+                  <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
+                    {s.label}
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="text-[11px] font-mono font-medium h-5 px-1.5 border-border/80 bg-background/70"
+                  >
                     {items.length}
                   </Badge>
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">
+                <div className="text-xs font-mono font-medium text-foreground/80 mt-1">
                   {formatBRL(sum)}
                 </div>
+                <div className="h-px w-full bg-border/60 mt-2" />
               </div>
-              <div className="space-y-2">
+
+              <div className="space-y-2 flex-1">
                 {items.map((p) => (
                   <KanbanCard
                     key={p.id}
@@ -805,6 +812,7 @@ function KanbanCard({
   const canQuickTask =
     projeto.tipo === "novos_negocios" ||
     ESTAGIOS_MA_TAREFAS_RAPIDAS.has(projeto.estagio);
+
   return (
     <Card
       draggable
@@ -813,29 +821,29 @@ function KanbanCard({
         e.dataTransfer.setData("text/projeto-estagio", projeto.estagio);
       }}
       onClick={onOpen}
-      className="p-3 cursor-pointer hover:shadow-md transition-shadow"
+      className="group relative p-3 cursor-pointer bg-card hover:bg-accent/20 border border-border/80 hover:border-primary/50 rounded-lg shadow-2xs hover:shadow-xs transition-all duration-150"
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="font-semibold text-sm leading-tight">
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold text-sm leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">
             {projeto.nome}
           </div>
           {projeto.tipo === "novos_negocios" && (
             <Badge
               variant="outline"
-              className="mt-1 text-[9px] py-0 px-1.5 leading-tight"
+              className="mt-1 text-[9px] py-0 px-1.5 leading-tight font-medium"
             >
               {STATUS_LABEL[projeto.status] ?? projeto.status}
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-1.5 mt-1 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
           {projeto.tipo === "ma" &&
             projeto.percentual_orizon != null &&
             Number(projeto.percentual_orizon) !== 100 && (
               <Badge
                 variant="outline"
-                className="text-[9px] py-0 px-1.5 leading-tight bg-gold/10 text-gold border-gold/30"
+                className="text-[9px] py-0 px-1.5 leading-tight bg-gold/10 text-gold-foreground border-gold/30 font-medium"
               >
                 {formatPercentOrizon(projeto.percentual_orizon)} Orizon
               </Badge>
@@ -843,38 +851,51 @@ function KanbanCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <div
-                className={`h-2.5 w-2.5 rounded-full ${HEALTH_BG[h]}`}
+                className={`h-2.5 w-2.5 rounded-full ring-2 ring-background ${HEALTH_BG[h]}`}
               />
             </TooltipTrigger>
             <TooltipContent>{HEALTH_LABEL[h]}</TooltipContent>
           </Tooltip>
         </div>
       </div>
-      {projeto.subcategoria && (
-        <Badge variant="secondary" className="mt-1.5 mr-1 text-[10px] py-0 bg-primary/10 text-primary border-primary/20">
-          {SUBCATEGORIA_LABEL[projeto.subcategoria] ?? projeto.subcategoria}
-        </Badge>
-      )}
-      {projeto.setor && (
-        <Badge variant="outline" className="mt-1.5 text-[10px] py-0">
-          {projeto.setor}
-        </Badge>
-      )}
-      <div className="mt-2 text-sm font-semibold text-primary">
-        {formatBRL(projeto.valor_estimado)}
+
+      {/* Badges de Setor e Subcategoria */}
+      <div className="mt-2 flex flex-wrap gap-1 items-center">
+        {projeto.subcategoria && (
+          <Badge
+            variant="secondary"
+            className="text-[10px] py-0 px-1.5 bg-primary/10 text-primary border-primary/20 font-medium"
+          >
+            {SUBCATEGORIA_LABEL[projeto.subcategoria] ?? projeto.subcategoria}
+          </Badge>
+        )}
+        {projeto.setor && (
+          <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-medium border-border/80 text-muted-foreground">
+            {projeto.setor}
+          </Badge>
+        )}
       </div>
-      {projeto.tipo === "ma" && projeto.volume_ton_dia != null && (
-        <div className="text-xs text-muted-foreground mt-0.5">
-          {formatTonDia(projeto.volume_ton_dia)}
+
+      {/* Métrica Financeira de Destaque */}
+      <div className="mt-2.5 flex items-baseline justify-between gap-2">
+        <div className="text-sm font-bold tracking-tight text-foreground font-mono">
+          {formatBRL(projeto.valor_estimado)}
         </div>
-      )}
-      <div className="mt-2 flex items-center justify-between">
+        {projeto.tipo === "ma" && projeto.volume_ton_dia != null && (
+          <div className="text-xs text-muted-foreground font-mono">
+            {formatTonDia(projeto.volume_ton_dia)}
+          </div>
+        )}
+      </div>
+
+      {/* Rodapé: Responsável, Tarefa Rápida e Data */}
+      <div className="mt-2.5 pt-2 border-t border-border/50 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           {profile ? (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Avatar className="h-6 w-6">
-                <AvatarFallback className="text-[10px]" style={avatarBgStyle(profile.nome_completo)}>
+                <Avatar className="h-5.5 w-5.5 border border-border/60">
+                  <AvatarFallback className="text-[9px] font-semibold" style={avatarBgStyle(profile.nome_completo)}>
                     {initials(profile.nome_completo)}
                   </AvatarFallback>
                 </Avatar>
@@ -890,7 +911,7 @@ function KanbanCard({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                  className="h-5.5 px-1.5 text-[11px] text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     onNovaTarefa();
@@ -904,7 +925,7 @@ function KanbanCard({
             </Tooltip>
           )}
         </div>
-        <span className="text-xs text-muted-foreground font-medium">
+        <span className="text-[11px] text-muted-foreground font-medium font-mono">
           {formatMonthYear(projeto.data_fechamento_prevista)}
         </span>
       </div>

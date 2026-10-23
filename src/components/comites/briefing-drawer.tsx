@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Sparkles, Save } from "lucide-react";
+import { Loader2, Bot, Save } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -173,7 +173,7 @@ export function BriefingDrawer({ pautaId, open, onOpenChange, readOnly = false, 
                     {aiM.isPending ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Sparkles className="mr-2 h-4 w-4" />
+                      <Bot className="mr-2 h-4 w-4" />
                     )}
                     Gerar com IA
                   </Button>
@@ -187,7 +187,7 @@ export function BriefingDrawer({ pautaId, open, onOpenChange, readOnly = false, 
                 }}
                 disabled={readOnly}
                 placeholder="Escreva o briefing em markdown (Resumo, Tese, Números-chave, Riscos, Próximos passos, Recomendação)..."
-                className="min-h-[320px] font-mono text-xs"
+                className="min-h-80 font-mono text-xs"
               />
               {briefing && !readOnly && (
                 <p className="text-[11px] text-muted-foreground">

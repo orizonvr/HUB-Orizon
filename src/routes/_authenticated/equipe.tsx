@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, type FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { UserPlus, MoreHorizontal, Mail, Copy, Check, Link2, RefreshCw, X } from "lucide-react";
+import { UserPlus, MoreHorizontal, Mail, Copy, Check, Link2, RefreshCw, X, ShieldCheck, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -170,7 +171,7 @@ function EquipePage() {
   }, [members, filter]);
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] px-4 py-8 md:px-8 md:py-10">
+    <div className="mx-auto w-full max-w-350 px-4 py-8 md:px-8 md:py-10">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-[28px]">
@@ -411,60 +412,143 @@ function InviteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Convidar novo membro</DialogTitle>
-          <DialogDescription>
-            O convite gera um link de uso único, válido por 7 dias. Compartilhe manualmente.
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={onSubmit} className="mt-2 space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="inv-nome">Nome completo</Label>
-            <Input id="inv-nome" required value={nome} onChange={(e) => setNome(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="inv-email">E-mail</Label>
-            <Input
-              id="inv-email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl">
+        {/* ========================================================= */}
+        {/* HERO BANNER DO MODAL (PADRÃO BANNER EXECUTIVO DO DASHBOARD) */}
+        {/* ========================================================= */}
+        <div className="relative overflow-hidden bg-primary text-primary-foreground px-6 py-4.5 border-b border-primary/20 shrink-0">
+          {/* Marca d'água circular oficial da Orizon */}
+          <div className="pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 opacity-[0.08] dark:opacity-[0.10] select-none">
+            <img
+              src="/brand/orizon-symbol.png"
+              alt=""
+              aria-hidden="true"
+              className="h-44 w-44 rounded-full object-cover filter contrast-125"
             />
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="inv-cargo">Cargo</Label>
-            <Input
-              id="inv-cargo"
-              required
-              placeholder="ex. Analista de M&A"
-              value={cargo}
-              onChange={(e) => setCargo(e.target.value)}
-            />
+
+          <div className="relative z-10 flex items-start gap-3.5 pr-12">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/12 border border-white/20 text-white shadow-xs">
+              <UserPlus className="h-5 w-5" />
+            </div>
+            <div className="space-y-1 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">
+                  Convidar Novo Membro
+                </DialogTitle>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-semibold tracking-wide text-white/90 uppercase">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                  <span>Acesso Corporativo</span>
+                </span>
+              </div>
+              <DialogDescription className="text-xs text-white/75 font-normal leading-relaxed truncate max-w-md">
+                Gera um link de uso único e temporário com alçada e perfil configurados.
+              </DialogDescription>
+            </div>
           </div>
-          <div className="space-y-1.5">
-            <Label>Permissão</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as TeamMember["role"])}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="lider">Líder</SelectItem>
-                <SelectItem value="analista">Analista</SelectItem>
-                <SelectItem value="observador">Observador</SelectItem>
-              </SelectContent>
-            </Select>
+        </div>
+
+        {/* Corpo do Formulário Agrupado em Card */}
+        <form onSubmit={onSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+            <div className="rounded-xl border border-border/70 bg-secondary/25 p-4.5 space-y-3.5">
+              <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center gap-1.5">
+                <ShieldCheck className="h-3.5 w-3.5 text-primary/80" />
+                Dados do Usuário & Alçada
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="inv-nome" className="text-xs font-medium text-foreground">
+                  Nome completo <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="inv-nome"
+                  required
+                  placeholder="Ex.: Carlos Mendes"
+                  className="rounded-xl bg-background border-border/80 focus-visible:ring-primary/25"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="inv-email" className="text-xs font-medium text-foreground">
+                  E-mail corporativo <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="inv-email"
+                  type="email"
+                  required
+                  placeholder="carlos.mendes@orizonvr.com.br"
+                  className="rounded-xl bg-background border-border/80 focus-visible:ring-primary/25"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="inv-cargo" className="text-xs font-medium text-foreground">
+                    Cargo <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="inv-cargo"
+                    required
+                    placeholder="Ex.: Analista de M&A"
+                    className="rounded-xl bg-background border-border/80 focus-visible:ring-primary/25"
+                    value={cargo}
+                    onChange={(e) => setCargo(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-foreground">
+                    Perfil de Permissão <span className="text-destructive">*</span>
+                  </Label>
+                  <Select value={role} onValueChange={(v) => setRole(v as TeamMember["role"])}>
+                    <SelectTrigger className="rounded-xl bg-background border-border/80 focus:ring-primary/25">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="lider">Líder de Negócios</SelectItem>
+                      <SelectItem value="analista">Analista</SelectItem>
+                      <SelectItem value="observador">Observador (Leitura)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+
+          {/* Footer Fixo */}
+          <div className="p-4 px-6 border-t border-border/60 bg-muted/20 flex items-center justify-end gap-2.5">
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-xl border-border/80 hover:bg-secondary/60 cursor-pointer"
+              onClick={() => onOpenChange(false)}
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={mut.isPending}>
-              {mut.isPending ? "Gerando…" : "Enviar convite"}
+            <Button
+              type="submit"
+              disabled={mut.isPending}
+              className="rounded-xl font-medium shadow-xs cursor-pointer gap-2"
+            >
+              {mut.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Gerando…
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-4 w-4" />
+                  Gerar convite
+                </>
+              )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
@@ -496,48 +580,106 @@ function LinkDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="overflow-hidden sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>
-            Compartilhe este link com a pessoa (válido por 7 dias). Ela vai criar a senha ao abrir.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="mt-2 flex w-full min-w-0 items-stretch gap-3 overflow-hidden">
-          <div
-            className="min-w-0 flex-1 overflow-hidden rounded-md border border-border bg-secondary/50"
-            onClick={(e) => {
-              const selection = window.getSelection();
-              const range = document.createRange();
-              range.selectNodeContents(e.currentTarget);
-              selection?.removeAllRanges();
-              selection?.addRange(range);
-            }}
-          >
-            <code className="block overflow-x-auto whitespace-nowrap px-3 py-2.5 font-mono text-xs text-foreground">
-              {url}
-            </code>
+      <DialogContent className="sm:max-w-xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl">
+        {/* ========================================================= */}
+        {/* HERO BANNER DO MODAL (PADRÃO BANNER EXECUTIVO DO DASHBOARD) */}
+        {/* ========================================================= */}
+        <div className="relative overflow-hidden bg-primary text-primary-foreground px-6 py-4.5 border-b border-primary/20 shrink-0">
+          {/* Marca d'água circular oficial da Orizon */}
+          <div className="pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 opacity-[0.08] dark:opacity-[0.10] select-none">
+            <img
+              src="/brand/orizon-symbol.png"
+              alt=""
+              aria-hidden="true"
+              className="h-44 w-44 rounded-full object-cover filter contrast-125"
+            />
           </div>
+
+          <div className="relative z-10 flex items-start gap-3.5 pr-12">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/12 border border-white/20 text-white shadow-xs">
+              <Link2 className="h-5 w-5" />
+            </div>
+            <div className="space-y-1 flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <DialogTitle className="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">
+                  {title}
+                </DialogTitle>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[10px] font-semibold tracking-wide text-white/90 uppercase">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                  <span>Link Ativo • 7 Dias</span>
+                </span>
+              </div>
+              <DialogDescription className="text-xs text-white/75 font-normal leading-relaxed truncate max-w-md">
+                O convidado definirá a senha de acesso pessoal ao abrir o endereço.
+              </DialogDescription>
+            </div>
+          </div>
+        </div>
+
+        {/* Corpo com Link de Compartilhamento */}
+        <div className="p-6 space-y-4">
+          <div className="rounded-xl border border-border/70 bg-secondary/25 p-4 space-y-3">
+            <div className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase flex items-center justify-between">
+              <span>Link Exclusivo de Primeiro Acesso</span>
+              <span className="text-[10px] font-normal text-muted-foreground/80">Uso único</span>
+            </div>
+
+            <div className="flex w-full min-w-0 items-stretch gap-2.5">
+              <div
+                className="min-w-0 flex-1 overflow-hidden rounded-xl border border-border/80 bg-background/80 px-3 py-2.5 cursor-pointer hover:border-primary/50 transition-colors"
+                onClick={(e) => {
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  range.selectNodeContents(e.currentTarget);
+                  selection?.removeAllRanges();
+                  selection?.addRange(range);
+                }}
+                title="Clique para selecionar tudo"
+              >
+                <code className="block overflow-x-auto whitespace-nowrap font-mono text-xs text-foreground">
+                  {url}
+                </code>
+              </div>
+              <Button
+                size="sm"
+                variant={copied ? "default" : "outline"}
+                className={cn(
+                  "shrink-0 gap-1.5 rounded-xl cursor-pointer font-medium h-auto py-2.5 px-4 shadow-2xs transition-all",
+                  copied && "bg-emerald-600 hover:bg-emerald-600 text-white border-emerald-600",
+                )}
+                onClick={handleCopy}
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-4 w-4" /> Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4" /> Copiar Link
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3 text-xs text-muted-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="leading-relaxed">
+              Por motivos de segurança e governança, este link de convite é de <strong>uso único</strong>. Assim que a senha for cadastrada, o token é invalidado imediatamente.
+            </p>
+          </div>
+        </div>
+
+        {/* Footer Fixo */}
+        <div className="p-4 px-6 border-t border-border/60 bg-muted/20 flex items-center justify-end">
           <Button
-            size="sm"
-            variant={copied ? "default" : "outline"}
-            className="shrink-0 gap-1.5 self-center"
-            onClick={handleCopy}
+            type="button"
+            className="rounded-xl font-medium shadow-xs cursor-pointer px-6"
+            onClick={onClose}
           >
-            {copied ? (
-              <>
-                <Check className="h-3.5 w-3.5" /> Copiado!
-              </>
-            ) : (
-              <>
-                <Copy className="h-3.5 w-3.5" /> Copiar
-              </>
-            )}
+            Concluir
           </Button>
         </div>
-        <DialogFooter>
-          <Button onClick={onClose}>Fechar</Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

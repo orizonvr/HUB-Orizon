@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,10 @@ import {
   Upload,
   Bookmark,
   CheckSquare,
+  ListTodo,
+  RotateCcw,
 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   listTarefasByTipo,
@@ -65,6 +69,8 @@ import { ViewModoToggle } from "@/components/tarefas/view-modo-toggle";
 import { useViewModo } from "@/hooks/use-view-modo";
 import { TarefasCardsView } from "@/components/tarefas/tarefas-cards-view";
 import { TarefasKanbanView } from "@/components/tarefas/tarefas-kanban-view";
+import { TarefasKpiStrip } from "@/components/tarefas/tarefas-kpi-strip";
+import { TarefasFilterBar } from "@/components/tarefas/tarefas-filter-bar";
 import { useTarefaDrawer } from "@/hooks/use-tarefa-drawer";
 
 export const Route = createFileRoute("/_authenticated/tarefas")({
@@ -155,6 +161,64 @@ function TarefasPage() {
   const session = useSessionCompleted();
   const { modo, setModo } = useViewModo();
 
+  // Controle de exibição de apenas filas com cards no Kanban (Padrão: TRUE)
+  const [kanbanApenasComTarefas, setKanbanApenasComTarefas] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      // Remove resquício da chave v1 que gravou false na sessão anterior
+      localStorage.removeItem("orizon:kanban-apenas-com-tarefas");
+      const saved = localStorage.getItem("orizon:kanban-apenas-com-tarefas:v2");
+      return saved !== null ? saved === "true" : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const handleKanbanApenasComTarefasChange = (checked: boolean) => {
+    setKanbanApenasComTarefas(checked);
+    try {
+      localStorage.setItem("orizon:kanban-apenas-com-tarefas:v2", String(checked));
+    } catch {}
+  };
+
+  const tarefasNoEscopo = useMemo(() => {
+    return tarefas.filter((t) => {
+      if (escopo === "minhas" && !(user?.id && t.responsavel_ids.includes(user.id))) return false;
+      return true;
+    });
+  }, [tarefas, escopo, user?.id]);
+
+  const handleQuickFilter = (patch: Partial<{ fStatus: string; fPrazo: string; fClassificacao: string }>) => {
+    if (patch.fStatus !== undefined) setFStatus(patch.fStatus);
+    if (patch.fPrazo !== undefined) setFPrazo(patch.fPrazo as PrazoFilter);
+    if (patch.fClassificacao !== undefined) setFClassificacao(patch.fClassificacao);
+
+    // Se estiver ativando um filtro focado por KPI (ex: atrasadas, 7 dias, acompanhamentos),
+    // aciona automaticamente a exibição de apenas filas com tarefas no Kanban
+    const isActivatingKpiFilter =
+      (patch.fPrazo && patch.fPrazo !== "todos") ||
+      (patch.fClassificacao && patch.fClassificacao !== "all");
+
+    if (isActivatingKpiFilter) {
+      setKanbanApenasComTarefas(true);
+      try {
+        localStorage.setItem("orizon:kanban-apenas-com-tarefas:v2", "true");
+      } catch {}
+    }
+  };
+
+  const handleResetFilters = () => {
+    setSearch("");
+    setFTipo("all");
+    setFClassificacao("all");
+    setFDep("all");
+    setRespUrl("all");
+    setFStatus("ativas");
+    setFPrio("all");
+    setFOrigem("all");
+    setFPrazo("todos");
+  };
+
   const filtered = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -230,153 +294,152 @@ function TarefasPage() {
   const loading = tarefasQ.isLoading || profsQ.isLoading || projsQ.isLoading;
 
   return (
-    <div className="mx-auto w-full max-w-350 px-4 py-8 md:px-8 md:py-10 space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tarefas</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {filtered.length} tarefa(s) com os filtros atuais
-          </p>
+    <div className="mx-auto w-full max-w-360 px-4 py-6 md:px-8 space-y-5">
+      {/* ======================================================== */}
+      {/* 1. HERO BANNER EXECUTIVO INSTITUCIONAL (PADRÃO ORIZONVR)  */}
+      {/* ======================================================== */}
+      <div className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground px-5 py-4 sm:px-6 sm:py-4.5 shadow-xs border border-primary/20">
+        {/* Marca d'água circular oficial da Orizon */}
+        <div className="pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 opacity-[0.08] dark:opacity-[0.10] select-none">
+          <img
+            src="/brand/orizon-symbol.png"
+            alt=""
+            aria-hidden="true"
+            className="h-52 w-52 sm:h-60 sm:w-60 rounded-full object-cover filter contrast-125"
+          />
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
-          <ToggleGroup
-            type="single"
-            value={escopo}
-            onValueChange={(v) => v && setEscopoUrl(v as Escopo)}
-            variant="outline"
-            size="sm"
-          >
-            <ToggleGroupItem value="minhas">Minhas</ToggleGroupItem>
-            {isAdminLider && (
-              <ToggleGroupItem value="time">Do time</ToggleGroupItem>
-            )}
-            <ToggleGroupItem value="todas">Todas</ToggleGroupItem>
-          </ToggleGroup>
-          <ViewModoToggle value={modo} onChange={setModo} />
-          {isAdminLider && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowImport(true)}
+
+        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          {/* Título & Identidade Institucional */}
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-white/12 border border-white/20 text-white shadow-xs">
+              <ListTodo className="h-5 w-5 sm:h-6 sm:w-6" />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white leading-tight">
+                  Gestão de Tarefas
+                </h1>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-medium text-white/90">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                  <span>Execução & Prazos</span>
+                </span>
+              </div>
+              <p className="text-xs text-white/75 font-normal truncate max-w-xl">
+                {filtered.length} tarefa{filtered.length === 1 ? "" : "s"} ativa{filtered.length === 1 ? "" : "s"} no escopo selecionado • Governança e entregas
+              </p>
+            </div>
+          </div>
+
+          {/* Controles de Escopo e Ações Rápidas */}
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            {/* Segmented Tabs de Escopo (Minhas / Do Time / Todas) */}
+            <Tabs
+              value={escopo}
+              onValueChange={(v) => v && setEscopoUrl(v as Escopo)}
+              className="w-auto"
             >
-              <Upload className="h-4 w-4 mr-1" />
-              Importar Planner
+              <TabsList className="h-8.5 bg-black/30 p-0.5 border border-white/15 rounded-xl text-white/80">
+                <TabsTrigger
+                  value="minhas"
+                  className="text-xs px-3 h-7.5 font-medium text-white/75 hover:text-white hover:bg-white/10 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-xs transition-all duration-150 cursor-pointer rounded-lg"
+                >
+                  Minhas
+                </TabsTrigger>
+                {isAdminLider && (
+                  <TabsTrigger
+                    value="time"
+                    className="text-xs px-3 h-7.5 font-medium text-white/75 hover:text-white hover:bg-white/10 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-xs transition-all duration-150 cursor-pointer rounded-lg"
+                  >
+                    Do time
+                  </TabsTrigger>
+                )}
+                <TabsTrigger
+                  value="todas"
+                  className="text-xs px-3 h-7.5 font-medium text-white/75 hover:text-white hover:bg-white/10 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-xs transition-all duration-150 cursor-pointer rounded-lg"
+                >
+                  Todas
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="h-5 w-px bg-white/20 hidden sm:block" />
+
+            {/* Ações Rápidas Executivas */}
+            {isAdminLider && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowImport(true)}
+                className="h-8.5 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white hover:text-white border border-white/20 hover:border-white/40 px-3 gap-1.5 rounded-xl shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer"
+              >
+                <Upload className="h-3.5 w-3.5 text-white" />
+                <span className="hidden sm:inline">Importar Planner</span>
+              </Button>
+            )}
+
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowRodada(true)}
+              className="h-8.5 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white hover:text-white border border-white/20 hover:border-white/40 px-3 gap-1.5 rounded-xl shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer"
+            >
+              <CalendarPlus className="h-3.5 w-3.5 text-white" />
+              <span className="hidden sm:inline">Reunião de Pipeline</span>
             </Button>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowRodada(true)}
-          >
-            <CalendarPlus className="h-4 w-4 mr-1" />
-            Reunião de Pipeline
-          </Button>
-          <Button size="sm" onClick={() => setShowNew(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Nova tarefa
-          </Button>
+
+            <Button
+              size="sm"
+              onClick={() => setShowNew(true)}
+              className="h-8.5 text-xs font-bold bg-white hover:bg-white/90 text-primary hover:text-primary border border-white/90 hover:border-white px-3.5 rounded-xl shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer gap-1.5"
+            >
+              <Plus className="h-4 w-4 stroke-[2.5]" />
+              <span>Nova tarefa</span>
+            </Button>
+          </div>
         </div>
       </div>
 
-      <Card className="p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-44">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por título ou projeto..."
-              className="pl-8"
-            />
-          </div>
-          <FSelect
-            value={fClassificacao}
-            onChange={setFClassificacao}
-            placeholder="Classificação"
-            options={[
-              { value: "tarefa", label: "Tarefas Padrão" },
-              { value: "acompanhamento", label: "Acompanhamentos" },
-            ]}
-            allLabel="Todas classificações"
-          />
-          <FSelect
-            value={fDep}
-            onChange={setFDep}
-            placeholder="Dependência"
-            options={[
-              { value: "com_dep", label: "Com dependência" },
-              { value: "terceiros", label: "Terceiros" },
-              { value: "sem_dep", label: "Sem dependência" },
-            ]}
-            allLabel="Todas dependências"
-          />
-          <FSelect
-            value={fTipo}
-            onChange={setFTipo}
-            placeholder="Pipeline"
-            options={[
-              { value: "ma", label: "M&A" },
-              { value: "novos_negocios", label: "Novos Negócios" },
-            ]}
-            allLabel="Todos os pipelines"
-          />
-          {escopo !== "minhas" && (
-            <FSelect
-              value={fResp}
-              onChange={setRespUrl}
-              placeholder="Responsável"
-              options={profiles.map((p) => ({
-                value: p.id,
-                label: p.nome_completo,
-              }))}
-            />
-          )}
-          <FSelect
-            value={fStatus}
-            onChange={setFStatus}
-            placeholder="Status"
-            options={[
-              { value: "ativas", label: "Ativas" },
-              ...Object.entries(STATUS_LABEL).map(([v, l]) => ({
-                value: v,
-                label: l,
-              })),
-            ]}
-            allLabel="Todos os status"
-          />
-          <FSelect
-            value={fPrio}
-            onChange={setFPrio}
-            placeholder="Prioridade"
-            options={Object.entries(PRIORIDADE_LABEL).map(([v, l]) => ({
-              value: v,
-              label: l,
-            }))}
-          />
-          <FSelect
-            value={fOrigem}
-            onChange={setFOrigem}
-            placeholder="Origem"
-            options={Object.entries(ORIGEM_LABEL).map(([v, l]) => ({
-              value: v,
-              label: l,
-            }))}
-          />
-          <FSelect
-            value={fPrazo}
-            onChange={(v) => setFPrazo(v as PrazoFilter)}
-            placeholder="Prazo"
-            options={[
-              { value: "todos", label: "Todos os prazos" },
-              { value: "vencidas", label: "Vencidas" },
-              { value: "hoje", label: "Hoje" },
-              { value: "7d", label: "Próximos 7 dias" },
-              { value: "30d", label: "Próximos 30 dias" },
-            ]}
-            hideAll
-          />
-        </div>
-      </Card>
+      {/* ======================================================== */}
+      {/* 2. BENTO STRIP DE KPIS DE PRODUTIVIDADE COM FILTRO RÁPIDO */}
+      {/* ======================================================== */}
+      <TarefasKpiStrip
+        tarefas={tarefasNoEscopo}
+        isLoading={tarefasQ.isLoading}
+        filters={{ fStatus, fPrazo, fClassificacao }}
+        onFilterChange={handleQuickFilter}
+      />
+
+      {/* ======================================================== */}
+      {/* 3. COCKPIT INTELIGENTE DE BUSCA & FILTROS (2 CAMADAS)    */}
+      {/* ======================================================== */}
+      <TarefasFilterBar
+        search={search}
+        onSearchChange={setSearch}
+        fTipo={fTipo}
+        onTipoChange={setFTipo}
+        fStatus={fStatus}
+        onStatusChange={setFStatus}
+        fPrazo={fPrazo}
+        onPrazoChange={setFPrazo}
+        fClassificacao={fClassificacao}
+        onClassificacaoChange={setFClassificacao}
+        fDep={fDep}
+        onDepChange={setFDep}
+        fResp={fResp}
+        onRespChange={setRespUrl}
+        fPrio={fPrio}
+        onPrioChange={setFPrio}
+        fOrigem={fOrigem}
+        onOrigemChange={setFOrigem}
+        escopo={escopo}
+        profiles={profiles}
+        modo={modo}
+        onModoChange={setModo}
+        totalNoEscopo={tarefasNoEscopo.length}
+        totalFiltered={filtered.length}
+        onResetFilters={handleResetFilters}
+      />
 
       {loading && (
         <div className="flex justify-center py-10">
@@ -385,11 +448,25 @@ function TarefasPage() {
       )}
 
       {!loading && modo !== "kanban" && filtered.length === 0 && (
-        <Card className="p-10 text-center">
-          <Inbox className="mx-auto h-8 w-8 text-muted-foreground/50" />
-          <p className="mt-3 text-sm text-muted-foreground">
-            Nenhuma tarefa encontrada.
+        <Card className="p-12 text-center rounded-2xl border-dashed border-border/80 bg-muted/10">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground/70 mb-3">
+            <Search className="h-6 w-6" />
+          </div>
+          <h3 className="text-sm font-semibold text-foreground">Nenhuma tarefa encontrada</h3>
+          <p className="mt-1 text-xs text-muted-foreground max-w-sm mx-auto">
+            Não foram encontradas tarefas com a combinação atual de filtros no escopo selecionado.
           </p>
+          <div className="mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetFilters}
+              className="gap-1.5 rounded-xl text-xs font-medium cursor-pointer"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Limpar todos os filtros</span>
+            </Button>
+          </div>
         </Card>
       )}
 
@@ -458,6 +535,8 @@ function TarefasPage() {
           allowCrossTipo={fTipo === "all"}
           showTipoBadge={fTipo === "all"}
           onOpenTask={onOpenTask}
+          apenasComTarefas={kanbanApenasComTarefas}
+          onApenasComTarefasChange={handleKanbanApenasComTarefasChange}
         />
       )}
 
@@ -544,18 +623,20 @@ function GlobalTarefaRow({
   return (
     <>
       <TableRow
-        className={`cursor-pointer ${dimmed ? "opacity-60" : ""} ${
-          isAcompanhamento ? "bg-blue-50/20 dark:bg-blue-950/10" : ""
-        }`}
+        className={cn(
+          "cursor-pointer transition-colors duration-150 hover:bg-muted/40",
+          dimmed && "opacity-60 bg-muted/10",
+          isAcompanhamento && "bg-blue-50/25 dark:bg-blue-950/15 hover:bg-blue-50/40 dark:hover:bg-blue-950/25",
+        )}
         onClick={() => openTarefa(t.id)}
       >
-        <TableCell className="w-8 p-0 pl-2" onClick={stop}>
+        <TableCell className="w-8 p-0 pl-2.5" onClick={stop}>
           {hasDescricao ? (
             <button
               type="button"
               onClick={onToggleExpand}
               aria-label={expanded ? "Recolher descrição" : "Expandir descrição"}
-              className="h-6 w-6 inline-flex items-center justify-center rounded hover:bg-accent text-muted-foreground"
+              className="h-6 w-6 inline-flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors cursor-pointer"
             >
               {expanded ? (
                 <ChevronDown className="h-3.5 w-3.5" />
@@ -569,30 +650,39 @@ function GlobalTarefaRow({
           <Checkbox
             checked={isConcluida}
             onCheckedChange={(c) => handleToggleConcluida(c === true)}
+            className="cursor-pointer transition-transform active:scale-90"
           />
         </TableCell>
         <TableCell
-          className={`font-medium max-w-85 truncate ${
-            isConcluida ? "line-through" : ""
-          }`}
+          className={cn(
+            "font-medium max-w-85 truncate",
+            isConcluida && "line-through text-muted-foreground",
+          )}
         >
           <div className="flex items-center gap-1.5 flex-wrap">
-            {isAcompanhamento && (
+            {isAcompanhamento ? (
               <Badge
                 variant="secondary"
-                className="text-[10px] px-1.5 py-0 bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200"
+                className="text-[10px] px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-900 font-medium shrink-0"
               >
-                <Bookmark className="h-2.5 w-2.5 mr-0.5 inline" /> Acompanhamento
+                <Bookmark className="h-2.5 w-2.5 mr-1 inline" /> Acompanhamento
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 text-muted-foreground border border-border/70 font-medium shrink-0"
+              >
+                <CheckSquare className="h-2.5 w-2.5 mr-1 inline text-muted-foreground/80" /> Padrão
               </Badge>
             )}
             <span className="truncate">{t.titulo}</span>
             {t.subtarefas_count && t.subtarefas_count > 0 ? (
               <Badge
                 variant="outline"
-                className="text-[10px] px-1.5 py-0 text-muted-foreground gap-1"
+                className="text-[10px] px-1.5 py-0.5 rounded-md text-muted-foreground gap-1 border-border/70 bg-background/80 shrink-0 font-medium"
                 title={`${t.subtarefas_concluidas} de ${t.subtarefas_count} subtarefas concluídas`}
               >
-                <CheckSquare className="h-2.5 w-2.5" />
+                <CheckSquare className="h-2.5 w-2.5 text-primary" />
                 {t.subtarefas_concluidas}/{t.subtarefas_count}
               </Badge>
             ) : null}
@@ -601,10 +691,10 @@ function GlobalTarefaRow({
         <TableCell onClick={stop}>
           <button
             onClick={() => onOpenProjeto(t)}
-            className="text-sm hover:underline text-foreground/80 font-medium"
+            className="text-xs hover:text-primary transition-colors text-foreground font-semibold inline-flex items-center gap-1.5 cursor-pointer group"
           >
-            {t.projeto_nome}
-            <span className="ml-1 text-[10px] text-muted-foreground">
+            <span className="group-hover:underline truncate">{t.projeto_nome}</span>
+            <span className="text-[10px] font-semibold px-1 py-0.2 rounded bg-muted/60 text-muted-foreground border border-border/70 shrink-0">
               {t.projeto_tipo === "ma" ? "M&A" : "NN"}
             </span>
           </button>
@@ -616,12 +706,12 @@ function GlobalTarefaRow({
           {t.dependencia_terceiro ? (
             <Badge
               variant="outline"
-              className="text-[10px] bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300"
+              className="text-[10px] px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-300 font-medium"
             >
               Terceiros
             </Badge>
           ) : t.dependencia_nome ? (
-            <span className="text-xs text-foreground/80 font-medium">
+            <span className="text-xs text-foreground/85 font-medium truncate block max-w-44" title={t.dependencia_nome}>
               {t.dependencia_nome}
             </span>
           ) : (
@@ -639,7 +729,15 @@ function GlobalTarefaRow({
           <PrioBadge p={t.prioridade} />
         </TableCell>
         <TableCell>
-          <Badge variant="outline" className="text-xs">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[11px] px-2 py-0.5 rounded-md font-medium",
+              t.status === "concluida" && "border-emerald-500/30 text-emerald-700 dark:text-emerald-400 bg-emerald-500/10",
+              t.status === "em_andamento" && "border-primary/30 text-primary bg-primary/10 font-semibold",
+              t.status === "cancelada" && "border-border/60 text-muted-foreground line-through opacity-70",
+            )}
+          >
             {STATUS_LABEL[t.status]}
           </Badge>
         </TableCell>
@@ -650,8 +748,8 @@ function GlobalTarefaRow({
       {expanded && hasDescricao && (
         <TableRow className="bg-muted/20 hover:bg-muted/20">
           <TableCell />
-          <TableCell colSpan={9} className="py-3">
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+          <TableCell colSpan={9} className="py-3 px-4">
+            <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed max-w-3xl">
               {t.descricao}
             </p>
           </TableCell>
@@ -664,47 +762,13 @@ function GlobalTarefaRow({
 function PrioBadge({ p }: { p: TarefaPrioridade }) {
   const cls =
     p === "alta"
-      ? "border-destructive/40 text-destructive"
+      ? "border-destructive/35 text-destructive bg-destructive/10 font-semibold"
       : p === "media"
-        ? ""
-        : "text-muted-foreground";
+        ? "border-amber-500/35 text-amber-700 dark:text-amber-400 bg-amber-500/10 font-medium"
+        : "text-muted-foreground border-border/70 bg-muted/30";
   return (
-    <Badge variant="outline" className={`text-xs ${cls}`}>
+    <Badge variant="outline" className={cn("text-[11px] px-2 py-0.5 rounded-md", cls)}>
       {PRIORIDADE_LABEL[p]}
     </Badge>
-  );
-}
-
-function FSelect({
-  value,
-  onChange,
-  placeholder,
-  options,
-  allLabel,
-  hideAll,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  options: Array<{ value: string; label: string }>;
-  allLabel?: string;
-  hideAll?: boolean;
-}) {
-  return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-36 h-9">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {!hideAll && (
-          <SelectItem value="all">{allLabel ?? `Todos — ${placeholder}`}</SelectItem>
-        )}
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
   );
 }

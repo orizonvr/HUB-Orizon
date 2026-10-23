@@ -68,20 +68,35 @@ async function enrichTarefas(rows: Tarefa[]): Promise<TarefaComContexto[]> {
     ]),
   );
 
-  // Subtarefas contadores agrupados por tarefa (com proteção caso a tabela ainda não exista)
+  // Subtarefas contadores agrupados por tarefa em chunks de 80 IDs (evita HeadersOverflowError no PostgREST)
   const taskIds = rows.map((r) => r.id);
   const subStatsMap = new Map<string, { total: number; concluidas: number }>();
   try {
-    const { data: subRows } = await supabaseAdmin
-      .from("tarefas_subtarefas")
-      .select("tarefa_id, concluida")
-      .in("tarefa_id", taskIds);
-    if (subRows) {
-      for (const s of subRows as Array<{ tarefa_id: string; concluida: boolean }>) {
-        const cur = subStatsMap.get(s.tarefa_id) ?? { total: 0, concluidas: 0 };
-        cur.total += 1;
-        if (s.concluida) cur.concluidas += 1;
-        subStatsMap.set(s.tarefa_id, cur);
+    if (taskIds.length > 0) {
+      const CHUNK_SIZE = 80;
+      const chunks: string[][] = [];
+      for (let i = 0; i < taskIds.length; i += CHUNK_SIZE) {
+        chunks.push(taskIds.slice(i, i + CHUNK_SIZE));
+      }
+
+      const results = await Promise.all(
+        chunks.map((chunk) =>
+          supabaseAdmin
+            .from("tarefas_subtarefas")
+            .select("tarefa_id, concluida")
+            .in("tarefa_id", chunk),
+        ),
+      );
+
+      for (const { data: subRows, error } of results) {
+        if (!error && subRows) {
+          for (const s of subRows as Array<{ tarefa_id: string; concluida: boolean }>) {
+            const cur = subStatsMap.get(s.tarefa_id) ?? { total: 0, concluidas: 0 };
+            cur.total += 1;
+            if (s.concluida) cur.concluidas += 1;
+            subStatsMap.set(s.tarefa_id, cur);
+          }
+        }
       }
     }
   } catch {

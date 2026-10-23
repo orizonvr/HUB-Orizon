@@ -28,6 +28,10 @@ export const updatePreferencias = createServerFn({ method: "POST" })
       .object({
         email_notificacoes: z.boolean().optional(),
         view_tarefas_modo: z.enum(["tabela", "cards", "kanban"]).optional(),
+        email_tarefa_atribuida: z.boolean().optional(),
+        email_tarefa_vencendo: z.boolean().optional(),
+        email_resumo_semanal: z.boolean().optional(),
+        escopo_padrao_tarefas: z.enum(["minhas", "time", "todas"]).optional(),
       })
       .parse(d),
   )
