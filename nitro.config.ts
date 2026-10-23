@@ -21,7 +21,7 @@ const SECURITY_HEADERS = {
     "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
-    "img-src 'self' data: blob: https://*.supabase.co https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev https://*.lovable.app",
+    "img-src 'self' data: blob: https://*.supabase.co https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev https://*.lovable.app https://images.unsplash.com https://*.unsplash.com https://secure.gravatar.com https://*.googleusercontent.com https://*.githubusercontent.com",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://challenges.cloudflare.com",
     "frame-src https://challenges.cloudflare.com",
     "frame-ancestors 'none'",

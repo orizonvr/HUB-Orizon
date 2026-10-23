@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -83,19 +83,19 @@ const ROLE_BADGE_STYLE: Record<string, string> = {
 const AVATAR_PRESETS = [
   {
     label: "Executivo 1",
-    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80",
+    url: "/avatars/avatar-1.svg",
   },
   {
-    label: "Executivo 2",
-    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&auto=format&fit=crop&q=80",
+    label: "Executiva 2",
+    url: "/avatars/avatar-2.svg",
   },
   {
     label: "Executivo 3",
-    url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=240&auto=format&fit=crop&q=80",
+    url: "/avatars/avatar-3.svg",
   },
   {
-    label: "Executivo 4",
-    url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=240&auto=format&fit=crop&q=80",
+    label: "Executiva 4",
+    url: "/avatars/avatar-4.svg",
   },
 ];
 
@@ -115,7 +115,7 @@ function ConfigPage() {
   const isAdminOrLider = profile?.role === "admin" || profile?.role === "lider";
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 space-y-6">
+    <div className="mx-auto w-full max-w-360 px-4 py-6 md:px-8 space-y-5">
       {/* ======================================================== */}
       {/* 1. HERO BANNER EXECUTIVO INSTITUCIONAL (PADRÃO ORIZONVR)  */}
       {/* ======================================================== */}
@@ -283,6 +283,11 @@ function PerfilTab() {
   const [nome, setNome] = useState(profile?.nome_completo ?? "");
   const [cargo, setCargo] = useState(profile?.cargo ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url ?? "");
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl]);
 
   const mut = useMutation({
     mutationFn: () =>
@@ -333,14 +338,12 @@ function PerfilTab() {
                 className="flex h-24 w-24 items-center justify-center rounded-2xl text-2xl font-bold text-white shadow-md border-2 border-border/60 overflow-hidden"
                 style={{ backgroundColor: colorFromName(nome || "Orizon") }}
               >
-                {avatarUrl ? (
+                {avatarUrl && !imgError ? (
                   <img
                     src={avatarUrl}
                     alt={nome}
                     className="h-full w-full object-cover"
-                    onError={(e) => {
-                      (e.target as HTMLElement).style.display = "none";
-                    }}
+                    onError={() => setImgError(true)}
                   />
                 ) : (
                   initialsOf(nome || "U")
@@ -377,16 +380,26 @@ function PerfilTab() {
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => setAvatarUrl(preset.url)}
+                  onClick={() => {
+                    setAvatarUrl(preset.url);
+                    setImgError(false);
+                  }}
                   title={preset.label}
                   className={cn(
-                    "h-9 w-9 rounded-full overflow-hidden border-2 transition-all hover:scale-105 cursor-pointer",
+                    "h-9 w-9 rounded-full overflow-hidden border-2 transition-all hover:scale-105 cursor-pointer bg-muted/40",
                     avatarUrl === preset.url
                       ? "border-primary ring-2 ring-primary/20 scale-105"
-                      : "border-border/80 opacity-75 hover:opacity-100"
+                      : "border-border/80 opacity-85 hover:opacity-100"
                   )}
                 >
-                  <img src={preset.url} alt={preset.label} className="h-full w-full object-cover" />
+                  <img
+                    src={preset.url}
+                    alt={preset.label}
+                    className="h-full w-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = "none";
+                    }}
+                  />
                 </button>
               ))}
               {avatarUrl && (
@@ -394,7 +407,10 @@ function PerfilTab() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setAvatarUrl("")}
+                  onClick={() => {
+                    setAvatarUrl("");
+                    setImgError(false);
+                  }}
                   className="h-8 text-[11px] px-2 text-muted-foreground hover:text-foreground cursor-pointer"
                 >
                   Usar Iniciais

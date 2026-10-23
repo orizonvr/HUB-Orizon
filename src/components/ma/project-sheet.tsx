@@ -5,10 +5,12 @@ import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +43,9 @@ import {
   CheckCircle2,
   Circle,
   Loader2,
+  Briefcase,
+  Sparkles,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
@@ -114,18 +119,21 @@ export function ProjectSheet({ config, projectId, initialTab, profiles, onClose 
   );
 
   return (
-    <Sheet
+    <Dialog
       open={open}
       onOpenChange={(o) => !o && onClose()}
       modal={nestedCount === 0}
     >
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-2xl flex flex-col p-0 gap-0"
-      >
+      <DialogContent className="w-full sm:max-w-4xl md:max-w-5xl h-[92vh] max-h-[92vh] p-0 flex flex-col gap-0 overflow-hidden rounded-2xl">
+        <DialogTitle className="sr-only">
+          {detail.data?.projeto.nome ?? "Detalhes do Projeto"}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          Informações completas, documentos, tese estratégica e tarefas do projeto
+        </DialogDescription>
         {detail.isLoading || !detail.data ? (
           <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Loader2 className="h-7 w-7 animate-spin text-primary" />
           </div>
         ) : (
           <NestedModalContext.Provider value={registerNested}>
@@ -142,8 +150,8 @@ export function ProjectSheet({ config, projectId, initialTab, profiles, onClose 
             />
           </NestedModalContext.Provider>
         )}
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -171,127 +179,169 @@ function SheetBody({
 
   return (
     <>
-      <SheetHeader className="px-6 pt-6 pb-4 border-b space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <InlineText
-              value={projeto.nome}
-              className="text-xl font-bold"
-              onSave={(v) => save({ nome: v })}
-            />
-            <InlineText
-              value={projeto.contraparte ?? ""}
-              placeholder="Contraparte"
-              className="text-sm text-muted-foreground"
-              onSave={(v) => save({ contraparte: v })}
-            />
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              navigate({ to: "/projetos/$id", params: { id: projeto.id } })
-            }
-          >
-            Abrir dossiê
-          </Button>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onClick={() => save({ status: "arquivado" })}
-              >
-                Arquivar
-              </DropdownMenuItem>
-              <ConfirmDialog
-                title="Excluir este projeto?"
-                description="Essa ação não pode ser desfeita. Todos os comentários, documentos e atividades vinculados também serão removidos."
-                confirmLabel="Excluir"
-                destructive
-                onConfirm={async () => {
-                  try {
-                    await deleteFn({ data: { id: projeto.id } });
-                    toast.success("Projeto excluído");
-                    onDeleted();
-                  } catch (e) {
-                    toast.error((e as Error).message);
-                  }
-                }}
-                trigger={
-                  <DropdownMenuItem
-                    onSelect={(e) => e.preventDefault()}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    Excluir
-                  </DropdownMenuItem>
+      {/* Top Hero Banner Header (Padrão Banner Executivo Dashboard) */}
+      <div className="relative overflow-hidden bg-primary text-primary-foreground px-6 py-4.5 border-b border-primary/20 shrink-0">
+        {/* Marca d'água circular oficial da Orizon */}
+        <div className="pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 opacity-[0.08] dark:opacity-[0.10] select-none">
+          <img
+            src="/brand/orizon-symbol.png"
+            alt=""
+            aria-hidden="true"
+            className="h-44 w-44 rounded-full object-cover filter contrast-125"
+          />
+        </div>
+
+        <div className="relative z-10 space-y-3 pr-10">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3.5 min-w-0 flex-1">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/12 border border-white/20 text-white shadow-xs">
+                {projeto.tipo === "ma" ? (
+                  <Briefcase className="h-5 w-5" />
+                ) : (
+                  <Sparkles className="h-5 w-5" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <InlineText
+                  value={projeto.nome}
+                  className="text-lg sm:text-xl font-bold text-white tracking-tight leading-tight"
+                  onSave={(v) => save({ nome: v })}
+                />
+                <InlineText
+                  value={projeto.contraparte ?? ""}
+                  placeholder="Contraparte (clique para editar)"
+                  className="text-xs text-white/75 font-normal mt-0.5"
+                  onSave={(v) => save({ contraparte: v })}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  navigate({ to: "/projetos/$id", params: { id: projeto.id } })
                 }
+                className="h-8.5 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white hover:text-white border border-white/20 px-3 gap-1.5 rounded-xl shadow-xs transition-all cursor-pointer"
+              >
+                <ExternalLink className="h-3.5 w-3.5 text-white" />
+                <span className="hidden sm:inline">Abrir dossiê</span>
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8.5 w-8.5 text-white hover:bg-white/15 rounded-xl border border-white/20"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="text-xs">
+                  <DropdownMenuItem
+                    onClick={() => save({ status: "arquivado" })}
+                  >
+                    Arquivar deal
+                  </DropdownMenuItem>
+                  <ConfirmDialog
+                    title="Excluir este projeto?"
+                    description="Essa ação não pode ser desfeita. Todos os comentários, documentos e atividades vinculados também serão removidos."
+                    confirmLabel="Excluir"
+                    destructive
+                    onConfirm={async () => {
+                      try {
+                        await deleteFn({ data: { id: projeto.id } });
+                        toast.success("Projeto excluído");
+                        onDeleted();
+                      } catch (e) {
+                        toast.error((e as Error).message);
+                      }
+                    }}
+                    trigger={
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        Excluir projeto
+                      </DropdownMenuItem>
+                    }
+                  />
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-white/10 text-white border-white/20 uppercase shadow-2xs"
+            >
+              {projeto.tipo === "ma" ? "M&A" : "Novos Negócios"}
+            </Badge>
+
+            <Select
+              value={projeto.estagio}
+              onValueChange={(v) => save({ estagio: v })}
+            >
+              <SelectTrigger className="h-7 w-auto text-xs font-semibold bg-white/15 border-white/25 text-white hover:bg-white/20 rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {config.estagios.map((s) => (
+                  <SelectItem key={s.key} value={s.key} className="text-xs">
+                    {s.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={projeto.status}
+              onValueChange={(v) => save({ status: v })}
+            >
+              <SelectTrigger className="h-7 w-auto text-xs font-medium bg-white/15 border-white/25 text-white hover:bg-white/20 rounded-lg">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_POR_TIPO[projeto.tipo].map((k) => (
+                  <SelectItem key={k} value={k} className="text-xs">
+                    {STATUS_LABEL[k] ?? k}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex-1 min-w-48">
+              <DebouncedInlineText
+                value={projeto.status_detalhado ?? ""}
+                placeholder="Status detalhado (ex.: NBO em revisão jurídica)"
+                className="text-xs text-white/80 font-normal italic placeholder:text-white/50"
+                onSave={(v) => save({ status_detalhado: v || null })}
               />
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className="uppercase">
-            {projeto.tipo === "ma" ? "M&A" : "Novos Negócios"}
-          </Badge>
-          <Select
-            value={projeto.estagio}
-            onValueChange={(v) => save({ estagio: v })}
-          >
-            <SelectTrigger className="h-7 w-auto text-xs bg-primary/10 border-primary/20 text-primary">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {config.estagios.map((s) => (
-                <SelectItem key={s.key} value={s.key}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select
-            value={projeto.status}
-            onValueChange={(v) => save({ status: v })}
-          >
-            <SelectTrigger className="h-7 w-auto text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_POR_TIPO[projeto.tipo].map((k) => (
-                <SelectItem key={k} value={k}>
-                  {STATUS_LABEL[k] ?? k}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      </div>
+
+      <Tabs defaultValue={initialTab === "tarefas" ? "tarefas" : "overview"} className="flex-1 flex flex-col min-h-0 bg-background">
+        <div className="px-6 py-2.5 border-b border-border/70 bg-muted/20 shrink-0 overflow-hidden">
+          <TabsList className="h-9 bg-muted/50 p-1 border border-border/80 rounded-xl justify-start inline-flex w-auto max-w-full overflow-x-auto overflow-y-hidden scrollbar-none [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <TabsTrigger value="overview" className="text-xs font-medium px-3 h-7 rounded-lg shrink-0 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs">Visão geral</TabsTrigger>
+            <TabsTrigger value="tarefas" className="text-xs font-medium px-3 h-7 rounded-lg shrink-0 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs">Tarefas</TabsTrigger>
+            <TabsTrigger value="tese" className="text-xs font-medium px-3 h-7 rounded-lg shrink-0 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs">Tese</TabsTrigger>
+            <TabsTrigger value="fin" className="text-xs font-medium px-3 h-7 rounded-lg shrink-0 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs">Financeiro</TabsTrigger>
+            <TabsTrigger value="crono" className="text-xs font-medium px-3 h-7 rounded-lg shrink-0 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs">Cronograma</TabsTrigger>
+            <TabsTrigger value="docs" className="text-xs font-medium px-3 h-7 rounded-lg shrink-0 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs">Documentos</TabsTrigger>
+            {config.showComentarios && (
+              <TabsTrigger value="coms" className="text-xs font-medium px-3 h-7 rounded-lg shrink-0 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs">Comentários</TabsTrigger>
+            )}
+            <TabsTrigger value="ativ" className="text-xs font-medium px-3 h-7 rounded-lg shrink-0 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs">Atividade</TabsTrigger>
+          </TabsList>
         </div>
-        <DebouncedInlineText
-          value={projeto.status_detalhado ?? ""}
-          placeholder="Status detalhado (ex.: NBO em revisão jurídica)"
-          className="text-sm text-muted-foreground"
-          onSave={(v) => save({ status_detalhado: v || null })}
-        />
-      </SheetHeader>
 
-      <Tabs defaultValue={initialTab === "tarefas" ? "tarefas" : "overview"} className="flex-1 flex flex-col min-h-0">
-        <TabsList className="mx-6 mt-3 justify-start overflow-x-auto h-auto flex-wrap">
-          <TabsTrigger value="overview">Visão geral</TabsTrigger>
-          <TabsTrigger value="tarefas">Tarefas</TabsTrigger>
-          <TabsTrigger value="tese">Tese</TabsTrigger>
-          <TabsTrigger value="fin">Financeiro</TabsTrigger>
-          <TabsTrigger value="crono">Cronograma</TabsTrigger>
-          <TabsTrigger value="docs">Documentos</TabsTrigger>
-          {config.showComentarios && (
-            <TabsTrigger value="coms">Comentários</TabsTrigger>
-          )}
-          <TabsTrigger value="ativ">Atividade</TabsTrigger>
-        </TabsList>
-
-        <ScrollArea className="flex-1">
-          <div className="px-6 py-4">
+        <ScrollArea className="flex-1 min-h-0">
+          <div className="px-6 py-5">
             <TabsContent value="overview" className="mt-0 space-y-4">
               <Field label="Setor">
                 <Select

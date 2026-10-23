@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <defs>
+    <linearGradient id="bg3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#14532d" />
+      <stop offset="100%" stop-color="#064e3b" />
+    </linearGradient>
+    <linearGradient id="face3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a16207" />
+      <stop offset="100%" stop-color="#854d0e" />
+    </linearGradient>
+    <linearGradient id="suit3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="160" height="160" rx="80" fill="url(#bg3)" />
+  <circle cx="80" cy="80" r="76" fill="none" stroke="#4ade80" stroke-width="2" opacity="0.25" />
+  
+  <!-- Suit -->
+  <path d="M28 160 C32 120 54 110 80 110 C106 110 128 120 132 160 Z" fill="url(#suit3)" />
+  <!-- Shirt -->
+  <path d="M68 110 L80 132 L92 110 Z" fill="#e2e8f0" />
+  <!-- Gravata azul Orizon -->
+  <polygon points="76,116 84,116 82,146 80,150 78,146" fill="#0284c7" />
+  
+  <!-- Neck -->
+  <rect x="71" y="86" width="18" height="26" rx="4" fill="#78350f" opacity="0.7" />
+  <!-- Head / Face -->
+  <ellipse cx="80" cy="68" rx="26" ry="31" fill="url(#face3)" />
+  
+  <!-- Hair (Short neat fade) -->
+  <path d="M54 62 C54 40 64 36 80 36 C96 36 106 40 106 62 C106 50 96 42 80 42 C64 42 54 50 54 62 Z" fill="#09090b" />
+  <!-- Barba alinhada executiva -->
+  <path d="M58 68 C58 92 68 100 80 100 C92 100 102 92 102 68 C102 84 94 94 80 94 C66 94 58 84 58 68 Z" fill="#09090b" opacity="0.9" />
+  
+  <!-- Eyes -->
+  <circle cx="70" cy="66" r="3" fill="#09090b" />
+  <circle cx="90" cy="66" r="3" fill="#09090b" />
+  <!-- Confident Smile -->
+  <path d="M73 82 Q80 86 87 82" fill="none" stroke="#fef08a" stroke-width="2" stroke-linecap="round" />
+</svg>

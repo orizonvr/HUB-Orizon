@@ -130,7 +130,7 @@ export function AppSidebar() {
               {pipelineItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                    <Link to={item.url}>
+                    <Link to={item.url} preload="intent">
                       <item.icon className="h-4 w-4" />
                       <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </Link>
@@ -154,7 +154,7 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                      <Link to={item.url}>
+                      <Link to={item.url} preload="intent">
                         <item.icon className="h-4 w-4" />
                         <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                         {showBadge && (
@@ -181,7 +181,7 @@ export function AppSidebar() {
               {adminItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                    <Link to={item.url}>
+                    <Link to={item.url} preload="intent">
                       <item.icon className="h-4 w-4" />
                       <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </Link>

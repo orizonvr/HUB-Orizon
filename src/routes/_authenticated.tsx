@@ -1,4 +1,6 @@
 import { createFileRoute, Outlet, redirect, useRouterState, useNavigate } from "@tanstack/react-router";
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -63,6 +65,42 @@ function initialsOf(name: string): string {
   if (parts.length === 0 || !parts[0]) return "U";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function UserNavAvatar({
+  avatarUrl,
+  name,
+  className,
+}: {
+  avatarUrl?: string | null;
+  name: string;
+  className?: string;
+}) {
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setError(false);
+  }, [avatarUrl]);
+
+  if (avatarUrl && !error) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={name}
+        onError={() => setError(true)}
+        className={cn("rounded-full object-cover select-none", className)}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={avatarBgStyle(name)}
+      className={cn("flex items-center justify-center rounded-full font-bold text-white shadow-2xs select-none", className)}
+    >
+      {initialsOf(name)}
+    </div>
+  );
 }
 
 function AuthenticatedLayout() {
@@ -165,12 +203,11 @@ function AuthenticatedLayout() {
                       title={`${displayName} (${displayCargo})`}
                     >
                       <div className="relative">
-                        <div
-                          className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white shadow-2xs select-none transition-transform group-hover:scale-105 group-hover:ring-2 group-hover:ring-primary/30"
-                          style={avatarBgStyle(displayName)}
-                        >
-                          {initialsOf(displayName)}
-                        </div>
+                        <UserNavAvatar
+                          avatarUrl={profile?.avatar_url}
+                          name={displayName}
+                          className="h-8 w-8 text-xs transition-transform group-hover:scale-105 group-hover:ring-2 group-hover:ring-primary/30"
+                        />
                         <span
                           className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background"
                           title="Online"
@@ -186,12 +223,11 @@ function AuthenticatedLayout() {
                   >
                     {/* Header do Perfil com Avatar Ampliado & Identidade */}
                     <div className="p-2.5 rounded-lg bg-muted/40 border border-border/60 flex items-start gap-3 select-none">
-                      <div
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-2xs"
-                        style={avatarBgStyle(displayName)}
-                      >
-                        {initialsOf(displayName)}
-                      </div>
+                      <UserNavAvatar
+                        avatarUrl={profile?.avatar_url}
+                        name={displayName}
+                        className="h-10 w-10 text-sm shrink-0"
+                      />
                       <div className="flex flex-col min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
                           <span className="text-xs font-bold text-foreground truncate">

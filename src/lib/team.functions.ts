@@ -128,6 +128,30 @@ export const setMemberActive = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
+
+    if (!data.ativo) {
+      if (data.id === context.userId) {
+        throw new Error("Você não pode excluir sua própria conta da lista.");
+      }
+
+      const { data: target } = await supabaseAdmin
+        .from("profiles")
+        .select("role")
+        .eq("id", data.id)
+        .single();
+
+      if (target?.role === "admin") {
+        const { count } = await supabaseAdmin
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .eq("role", "admin")
+          .eq("ativo", true);
+        if ((count ?? 0) <= 1) {
+          throw new Error("Não é possível desativar o último administrador ativo do sistema.");
+        }
+      }
+    }
+
     const { error } = await supabaseAdmin
       .from("profiles")
       .update({ ativo: data.ativo })

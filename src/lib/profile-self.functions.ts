@@ -6,7 +6,15 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const schema = z.object({
   nome_completo: z.string().min(1).max(120),
   cargo: z.string().min(1).max(120),
-  avatar_url: z.string().url().max(500).optional().nullable(),
+  avatar_url: z
+    .string()
+    .max(500)
+    .refine(
+      (v) => !v || v.startsWith("/") || /^https?:\/\//.test(v) || v.startsWith("data:"),
+      { message: "URL ou caminho de avatar inválido" },
+    )
+    .optional()
+    .nullable(),
 });
 
 export const updateOwnProfile = createServerFn({ method: "POST" })

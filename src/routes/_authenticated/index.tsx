@@ -250,7 +250,7 @@ function DashboardPage() {
     : undefined;
 
   return (
-    <div className="mx-auto w-full max-w-380 px-4 py-6 md:px-8">
+    <div className="mx-auto w-full max-w-360 px-4 py-6 md:px-8 space-y-5">
       {/* ======================================================== */}
       {/* 1. HERO BANNER EXECUTIVO COMPACTO (PADRÃO LOGIN ORIZON)  */}
       {/* ======================================================== */}

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <defs>
+    <linearGradient id="bg4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4c1d95" />
+      <stop offset="100%" stop-color="#1e1b4b" />
+    </linearGradient>
+    <linearGradient id="face4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#eab308" />
+    </linearGradient>
+    <linearGradient id="suit4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="160" height="160" rx="80" fill="url(#bg4)" />
+  <circle cx="80" cy="80" r="76" fill="none" stroke="#a78bfa" stroke-width="2" opacity="0.3" />
+  
+  <!-- Blazer Executivo -->
+  <path d="M26 160 C30 120 54 112 80 112 C106 112 130 120 134 160 Z" fill="url(#suit4)" />
+  <!-- Blouse emerald -->
+  <path d="M68 112 Q80 138 92 112 Z" fill="#047857" />
+  
+  <!-- Neck -->
+  <rect x="71" y="86" width="18" height="26" rx="4" fill="#ca8a04" opacity="0.6" />
+  <!-- Head / Face -->
+  <ellipse cx="80" cy="70" rx="25" ry="30" fill="url(#face4)" />
+  
+  <!-- Hair (Modern bob / short executive cut) -->
+  <path d="M50 70 C50 42 62 36 80 36 C98 36 110 42 110 70 C110 82 106 94 102 96 C98 84 98 70 96 62 C94 48 66 48 64 62 C62 70 62 84 58 96 C54 94 50 82 50 70 Z" fill="#172554" />
+  
+  <!-- Glasses -->
+  <rect x="62" y="64" width="13" height="9" rx="2.5" fill="none" stroke="#e2e8f0" stroke-width="2" />
+  <rect x="85" y="64" width="13" height="9" rx="2.5" fill="none" stroke="#e2e8f0" stroke-width="2" />
+  <line x1="75" y1="68" x2="85" y2="68" stroke="#e2e8f0" stroke-width="2" />
+  
+  <!-- Smile -->
+  <path d="M74 84 Q80 88 86 84" fill="none" stroke="#854d0e" stroke-width="2" stroke-linecap="round" />
+</svg>

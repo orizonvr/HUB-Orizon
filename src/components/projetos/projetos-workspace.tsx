@@ -1,96 +1,40 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import {
-  useSuspenseQuery,
   useQuery,
   queryOptions,
-  useMutation,
   useQueryClient,
 } from "@tanstack/react-query";
 import {
   Plus,
-  Search,
-  LayoutGrid,
-  Table as TableIcon,
-  KanbanSquare,
-  Download as DownloadIcon,
-  ArrowUpDown,
+  Columns3,
+  ListTodo,
+  FolderKanban,
+  Briefcase,
+  Sparkles,
   Smartphone,
   Inbox,
-  Columns3,
+  Scale,
+  Edit3,
+  X,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { avatarBgStyle, formatTonDia, formatPercentOrizon, formatValorTransacaoMM } from "@/lib/format";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  ToggleGroup,
-  ToggleGroupItem,
-} from "@/components/ui/toggle-group";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from "@/components/ui/pagination";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 import {
   listProjetosByTipo,
   listProfiles,
-  updateProjeto,
   listPipelineEstagios,
   type Profile,
   type Projeto,
 } from "@/lib/projetos.functions";
-import {
-  formatBRL,
-  formatBRLFull,
-  formatMonthYear,
-  healthFor,
-  HEALTH_BG,
-  HEALTH_LABEL,
-  initials,
-  STATUS_LABEL,
-  STATUS_POR_TIPO,
-} from "@/lib/ma-utils";
-import {
-  formatExtra,
-  type ProjetoConfig,
-} from "@/lib/projetos-config";
-import { SUBCATEGORIAS, SUBCATEGORIA_LABEL } from "@/lib/projetos-types";
+import { formatBRL, healthFor } from "@/lib/ma-utils";
+import type { ProjetoConfig } from "@/lib/projetos-config";
 import { ProjectSheet } from "@/components/ma/project-sheet";
 import { NewProjectDialog } from "@/components/ma/new-project-dialog";
 import { CompararTargets } from "@/components/projetos/comparar-targets";
@@ -99,15 +43,35 @@ import { GerenciarEstagiosDialog } from "@/components/projetos/gerenciar-estagio
 import { TarefasWorkspaceView } from "@/components/tarefas/tarefas-workspace-view";
 import { NovaTarefaDialog } from "@/components/tarefas/nova-tarefa-dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { ListTodo, FolderKanban } from "lucide-react";
 
-const ESTAGIOS_MA_TAREFAS_RAPIDAS = new Set([
+// Subcomponentes modulares de alta performance
+import {
+  ProjetosKpiStrip,
+  type ProjetosQuickFilters,
+} from "@/components/projetos/projetos-kpi-strip";
+import {
+  ProjetosFilterBar,
+  type ProjetosViewMode,
+} from "@/components/projetos/projetos-filter-bar";
+import { ProjetosKanbanView } from "@/components/projetos/projetos-kanban-view";
+import { ProjetosTableView } from "@/components/projetos/projetos-table-view";
+import { ProjetosCardsView } from "@/components/projetos/projetos-cards-view";
+
+const ESTAGIOS_AVANCADOS_MA = new Set([
   "nbo_submetida",
   "due_diligence",
   "negociacao",
   "opcao_compra_assinada",
   "assinatura_spa",
   "pos_ma_integracao",
+]);
+
+const ESTAGIOS_AVANCADOS_NN = new Set([
+  "due_diligence",
+  "estruturacao_aprovacao",
+  "em_aprovacao_comite",
+  "assinatura_contratos",
+  "operacao_integracao",
 ]);
 
 export const projetosQuery = (config: ProjetoConfig) =>
@@ -122,27 +86,46 @@ export const profilesQuery = () =>
     queryFn: () => listProfiles(),
   });
 
-type View = "kanban" | "table" | "cards";
-
 export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
-  const { data: projData } = useSuspenseQuery(projetosQuery(config));
-  const { data: profData } = useSuspenseQuery(profilesQuery());
-  const projetos = projData.projetos;
-  const profiles = profData.profiles;
+  const projQ = useQuery(projetosQuery(config));
+  const profQ = useQuery(profilesQuery());
+  const projetos = projQ.data?.projetos ?? [];
+  const profiles = profQ.data?.profiles ?? [];
+  const isLoading = projQ.isLoading || profQ.isLoading;
   const profileMap = useMemo(
     () => new Map(profiles.map((p) => [p.id, p])),
     [profiles],
   );
 
-  const [view, setView] = useState<View>("kanban");
+  const [view, setView] = useState<ProjetosViewMode>("kanban");
   const [search, setSearch] = useState("");
   const [filterEstagio, setFilterEstagio] = useState<string>("all");
   const [filterResp, setFilterResp] = useState<string>("all");
   const [filterSetor, setFilterSetor] = useState<string>("all");
   const [filterSubcategoria, setFilterSubcategoria] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterHealth, setFilterHealth] = useState<"all" | "atencao">("all");
+  const [filterFaseAvancada, setFilterFaseAvancada] = useState(false);
   const [filterMinVal, setFilterMinVal] = useState<string>("");
   const [filterMaxVal, setFilterMaxVal] = useState<string>("");
+
+  // Controle de colunas vazias no Kanban (Persistido no localStorage)
+  const [kanbanApenasComProjetos, setKanbanApenasComProjetos] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const saved = localStorage.getItem(`orizon:kanban-apenas-com-projetos:${config.tipo}`);
+      return saved === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleKanbanApenasComProjetosChange = (checked: boolean) => {
+    setKanbanApenasComProjetos(checked);
+    try {
+      localStorage.setItem(`orizon:kanban-apenas-com-projetos:${config.tipo}`, String(checked));
+    } catch {}
+  };
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [initialSheetTab, setInitialSheetTab] = useState<string | null>(null);
@@ -206,7 +189,6 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
     window.history.replaceState(null, "", url.toString());
   };
 
-
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -218,7 +200,7 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
     }
   }, []);
 
-  // Listen for global events from CommandPalette (Cmd+K + N shortcut).
+  // Eventos globais da CommandPalette
   useEffect(() => {
     const openHandler = (e: Event) => {
       const detail = (e as CustomEvent<{ id: string; tab?: string }>).detail;
@@ -236,39 +218,56 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
     };
   }, []);
 
-  const hasActiveFilters =
-    search.trim() !== "" ||
-    filterEstagio !== "all" ||
-    filterResp !== "all" ||
-    filterSetor !== "all" ||
-    filterSubcategoria !== "all" ||
-    filterStatus !== "all" ||
-    filterMinVal !== "" ||
-    filterMaxVal !== "";
+  const handleQuickFilter = (patch: Partial<ProjetosQuickFilters>) => {
+    if (patch.filterStatus !== undefined) setFilterStatus(patch.filterStatus);
+    if (patch.filterHealth !== undefined) setFilterHealth(patch.filterHealth);
+    if (patch.filterFaseAvancada !== undefined)
+      setFilterFaseAvancada(patch.filterFaseAvancada);
 
-  const clearFilters = () => {
+    // Se estiver filtrando por hot deals ou atenção, ativa visualização focada no kanban
+    if (patch.filterFaseAvancada || patch.filterHealth === "atencao") {
+      setKanbanApenasComProjetos(true);
+    }
+  };
+
+  const handleResetFilters = () => {
     setSearch("");
     setFilterEstagio("all");
     setFilterResp("all");
     setFilterSetor("all");
     setFilterSubcategoria("all");
     setFilterStatus("all");
+    setFilterHealth("all");
+    setFilterFaseAvancada(false);
     setFilterMinVal("");
     setFilterMaxVal("");
   };
+
+  const avancadosSet =
+    config.tipo === "ma" ? ESTAGIOS_AVANCADOS_MA : ESTAGIOS_AVANCADOS_NN;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const min = filterMinVal ? Number(filterMinVal) : -Infinity;
     const max = filterMaxVal ? Number(filterMaxVal) : Infinity;
+
     return projetos.filter((p) => {
       if (q && !`${p.nome} ${p.contraparte ?? ""}`.toLowerCase().includes(q))
         return false;
       if (filterEstagio !== "all" && p.estagio !== filterEstagio) return false;
       if (filterResp !== "all" && p.responsavel_id !== filterResp) return false;
       if (filterSetor !== "all" && p.setor !== filterSetor) return false;
-      if (filterSubcategoria !== "all" && p.subcategoria !== filterSubcategoria) return false;
+      if (
+        filterSubcategoria !== "all" &&
+        p.subcategoria !== filterSubcategoria
+      )
+        return false;
       if (filterStatus !== "all" && p.status !== filterStatus) return false;
+      if (filterFaseAvancada && !avancadosSet.has(p.estagio)) return false;
+      if (filterHealth === "atencao") {
+        const h = healthFor(p);
+        if (h !== "vermelho" && h !== "amarelo") return false;
+      }
       const v = Number(p.valor_estimado ?? 0);
       if (v < min || v > max) return false;
       return true;
@@ -281,91 +280,125 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
     filterSetor,
     filterSubcategoria,
     filterStatus,
+    filterHealth,
+    filterFaseAvancada,
     filterMinVal,
     filterMaxVal,
+    avancadosSet,
   ]);
 
-  const ativos = filtered.filter((p) => p.status === "ativo");
+  const ativos = projetos.filter((p) => p.status === "ativo");
   const totalValor = ativos.reduce(
     (s, p) => s + Number(p.valor_estimado ?? 0),
     0,
   );
 
+  const isMA = config.tipo === "ma";
+
   return (
     <TooltipProvider>
-      <div className="flex-1 p-6 space-y-5">
-        {/* Header */}
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              {config.titulo}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              {ativos.length} projetos ativos · {formatBRL(totalValor)}{" "}
-              {config.subtituloSuffix}
-            </p>
+      <div className="mx-auto w-full max-w-360 px-4 py-6 md:px-8 space-y-5">
+        {/* ======================================================== */}
+        {/* 1. HERO BANNER EXECUTIVO INSTITUCIONAL (PADRÃO ORIZONVR)  */}
+        {/* ======================================================== */}
+        <div className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground px-5 py-4 sm:px-6 sm:py-4.5 shadow-xs border border-primary/20">
+          {/* Marca d'água circular oficial da Orizon */}
+          <div className="pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 opacity-[0.08] dark:opacity-[0.10] select-none">
+            <img
+              src="/brand/orizon-symbol.png"
+              alt=""
+              aria-hidden="true"
+              className="h-52 w-52 sm:h-60 sm:w-60 rounded-full object-cover filter contrast-125"
+            />
           </div>
-          <div className="flex items-center gap-3 flex-wrap">
-            <ToggleGroup
-              type="single"
-              value={mainView}
-              onValueChange={(v) =>
-                v && switchMainView(v as "projetos" | "tarefas")
-              }
-              variant="outline"
-              size="sm"
-            >
-              <ToggleGroupItem value="projetos" aria-label="Projetos">
-                <FolderKanban className="h-4 w-4 mr-1" />
-                Projetos
-              </ToggleGroupItem>
-              <ToggleGroupItem value="tarefas" aria-label="Tarefas">
-                <ListTodo className="h-4 w-4 mr-1" />
-                Tarefas
-              </ToggleGroupItem>
-            </ToggleGroup>
-            {mainView === "projetos" && (
-              <ToggleGroup
-                type="single"
-                value={view}
-                onValueChange={(v) => v && setView(v as View)}
-                variant="outline"
-                size="sm"
-              >
-                <ToggleGroupItem value="kanban" aria-label="Kanban">
-                  <KanbanSquare className="h-4 w-4 mr-1" />
-                  Kanban
-                </ToggleGroupItem>
-                <ToggleGroupItem value="table" aria-label="Tabela">
-                  <TableIcon className="h-4 w-4 mr-1" />
-                  Tabela
-                </ToggleGroupItem>
-                <ToggleGroupItem value="cards" aria-label="Cards">
-                  <LayoutGrid className="h-4 w-4 mr-1" />
-                  Cards
-                </ToggleGroupItem>
-              </ToggleGroup>
-            )}
-            {mainView === "projetos" && (
-              <div className="flex items-center gap-2">
-                {isAdminLider && view === "kanban" && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowEstagiosModal(true)}
-                  >
-                    <Columns3 className="h-4 w-4 mr-1" />
-                    Colunas do Kanban
-                  </Button>
+
+          <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            {/* Título & Identidade Institucional */}
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-xl bg-white/12 border border-white/20 text-white shadow-xs">
+                {isMA ? (
+                  <Briefcase className="h-5 w-5 sm:h-6 sm:w-6" />
+                ) : (
+                  <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
                 )}
-                <Button onClick={() => setShowNew(true)}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Novo projeto
-                </Button>
               </div>
-            )}
+              <div className="space-y-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-lg sm:text-xl font-bold tracking-tight text-white leading-tight">
+                    {config.titulo}
+                  </h1>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[11px] font-medium text-white/90">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                    <span>
+                      {isMA ? "Pipeline M&A • Alocação" : "Novos Verticais • Expansão"}
+                    </span>
+                  </span>
+                </div>
+                <p className="text-xs text-white/75 font-normal truncate max-w-xl">
+                  {ativos.length} projetos ativos · {formatBRL(totalValor)}{" "}
+                  {config.subtituloSuffix} • Governança e Comitês
+                </p>
+              </div>
+            </div>
+
+            {/* Alternador Executivo Projetos vs Tarefas & Ações Rápidas */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <Tabs
+                value={mainView}
+                onValueChange={(v) => v && switchMainView(v as "projetos" | "tarefas")}
+                className="w-auto"
+              >
+                <TabsList className="h-8.5 bg-black/30 p-0.5 border border-white/15 rounded-xl text-white/80">
+                  <TabsTrigger
+                    value="projetos"
+                    className="text-xs px-3 h-7.5 font-medium text-white/75 hover:text-white hover:bg-white/10 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-xs transition-all duration-150 cursor-pointer rounded-lg gap-1.5"
+                  >
+                    <FolderKanban className="h-3.5 w-3.5" />
+                    <span>Projetos</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="tarefas"
+                    className="text-xs px-3 h-7.5 font-medium text-white/75 hover:text-white hover:bg-white/10 data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:font-semibold data-[state=active]:shadow-xs transition-all duration-150 cursor-pointer rounded-lg gap-1.5"
+                  >
+                    <ListTodo className="h-3.5 w-3.5" />
+                    <span>Tarefas</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <div className="h-5 w-px bg-white/20 hidden sm:block" />
+
+              {mainView === "projetos" && (
+                <>
+                  {isAdminLider && view === "kanban" && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setShowEstagiosModal(true)}
+                      className="h-8.5 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white hover:text-white border border-white/20 hover:border-white/40 px-3 gap-1.5 rounded-xl shadow-xs hover:shadow-sm hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer"
+                    >
+                      <Columns3 className="h-3.5 w-3.5 text-white" />
+                      <span className="hidden sm:inline">Colunas do Kanban</span>
+                    </Button>
+                  )}
+
+                  <Button
+                    size="sm"
+                    onClick={() => setShowNew(true)}
+                    className="h-8.5 text-xs font-bold bg-white hover:bg-white/90 text-primary hover:text-primary border border-white/90 hover:border-white px-3.5 rounded-xl shadow-xs hover:shadow-md hover:-translate-y-0.5 active:translate-y-0 transition-all duration-150 cursor-pointer gap-1.5"
+                  >
+                    <Plus className="h-4 w-4 stroke-[2.5]" />
+                    <span>Novo projeto</span>
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
+        {/* ======================================================== */}
+        {/* ABA 1: VISÃO DE TAREFAS VINCULADAS AO WORKSPACE          */}
+        {/* ======================================================== */}
         {mainView === "tarefas" && (
           <TarefasWorkspaceView
             config={activeConfig}
@@ -379,196 +412,218 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
           />
         )}
 
+        {/* ======================================================== */}
+        {/* ABA 2: PIPELINE EXECUTIVO DE PROJETOS                    */}
+        {/* ======================================================== */}
         {mainView === "projetos" && (
-        <>
-
-
-        {/* Filters */}
-        <Card className="p-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="relative flex-1 min-w-50">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por nome ou contraparte..."
-                className="pl-8"
-              />
-            </div>
-            <FilterSelect
-              value={filterEstagio}
-              onChange={setFilterEstagio}
-              placeholder="Estágio"
-              options={activeConfig.estagios.map((s) => ({
-                value: s.key,
-                label: s.label,
-              }))}
-            />
-            <FilterSelect
-              value={filterResp}
-              onChange={setFilterResp}
-              placeholder="Responsável"
-              options={profiles.map((p) => ({
-                value: p.id,
-                label: p.nome_completo,
-              }))}
-            />
-            <FilterSelect
-              value={filterSetor}
-              onChange={setFilterSetor}
-              placeholder="Setor"
-              options={config.setores.map((s) => ({ value: s, label: s }))}
-            />
-            {config.tipo === "novos_negocios" && (
-              <FilterSelect
-                value={filterSubcategoria}
-                onChange={setFilterSubcategoria}
-                placeholder="Subcategoria"
-                options={SUBCATEGORIAS.map((s) => ({ value: s.key, label: s.label }))}
-              />
-            )}
-            <FilterSelect
-              value={filterStatus}
-              onChange={setFilterStatus}
-              placeholder="Status"
-              options={STATUS_POR_TIPO[config.tipo].map((v) => ({
-                value: v,
-                label: STATUS_LABEL[v] ?? v,
-              }))}
-            />
-            <div className="flex items-center gap-1">
-              <Input
-                placeholder="Min R$"
-                value={filterMinVal}
-                onChange={(e) => setFilterMinVal(e.target.value)}
-                className="w-28"
-                type="number"
-              />
-              <span className="text-muted-foreground text-sm">–</span>
-              <Input
-                placeholder="Max R$"
-                value={filterMaxVal}
-                onChange={(e) => setFilterMaxVal(e.target.value)}
-                className="w-28"
-                type="number"
-              />
-            </div>
-          </div>
-        </Card>
-
-        {/* Views */}
-        {filtered.length === 0 && view !== "kanban" && (
-          <Card className="p-10 text-center">
-            <Inbox className="mx-auto h-8 w-8 text-muted-foreground/50" />
-            <p className="mt-3 text-sm text-muted-foreground">
-              {hasActiveFilters
-                ? "Nenhum projeto encontrado com esses filtros."
-                : "Nenhum projeto cadastrado ainda."}
-            </p>
-            {hasActiveFilters && (
-              <Button variant="link" size="sm" onClick={clearFilters} className="mt-1">
-                Limpar filtros
-              </Button>
-            )}
-          </Card>
-        )}
-        {view === "kanban" && (
           <>
-            <div className="md:hidden rounded-md border border-border bg-secondary/40 p-4 text-sm text-muted-foreground flex items-start gap-3">
-              <Smartphone className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>
-                O Kanban funciona melhor em telas maiores. Use a visão{" "}
-                <button onClick={() => setView("cards")} className="font-medium text-foreground underline">
-                  Cards
-                </button>{" "}
-                ou{" "}
-                <button onClick={() => setView("table")} className="font-medium text-foreground underline">
-                  Tabela
-                </button>{" "}
-                neste tamanho.
-              </span>
-            </div>
-            <div className="hidden md:block">
-              <KanbanView
-                config={activeConfig}
-                projetos={filtered}
-                profileMap={profileMap}
-                onOpen={setOpenId}
-                onNovaTarefa={setTarefaProjeto}
-              />
-            </div>
+            {/* 2. BENTO STRIP DE KPIS EXECUTIVOS COM FILTROS RÁPIDOS */}
+            <ProjetosKpiStrip
+              config={activeConfig}
+              projetos={projetos}
+              filters={{
+                filterStatus,
+                filterHealth,
+                filterFaseAvancada,
+              }}
+              onFilterChange={handleQuickFilter}
+            />
+
+            {/* 3. COCKPIT INTELIGENTE DE BUSCA & FILTROS (2 CAMADAS) */}
+            <ProjetosFilterBar
+              config={activeConfig}
+              search={search}
+              onSearchChange={setSearch}
+              filterEstagio={filterEstagio}
+              onEstagioChange={setFilterEstagio}
+              filterResp={filterResp}
+              onRespChange={setFilterResp}
+              filterSetor={filterSetor}
+              onSetorChange={setFilterSetor}
+              filterSubcategoria={filterSubcategoria}
+              onSubcategoriaChange={setFilterSubcategoria}
+              filterStatus={filterStatus}
+              onStatusChange={setFilterStatus}
+              filterMinVal={filterMinVal}
+              onMinValChange={setFilterMinVal}
+              filterMaxVal={filterMaxVal}
+              onMaxValChange={setFilterMaxVal}
+              profiles={profiles}
+              viewMode={view}
+              onViewModeChange={setView}
+              totalProjetos={projetos.length}
+              totalFiltered={filtered.length}
+              onResetFilters={handleResetFilters}
+              kanbanApenasComProjetos={kanbanApenasComProjetos}
+              onKanbanApenasComProjetosChange={handleKanbanApenasComProjetosChange}
+            />
+
+            {/* 4. VISUALIZAÇÕES DO PIPELINE (KANBAN, TABELA, CARDS) */}
+            {isLoading && projetos.length === 0 ? (
+              <div className="space-y-4 py-2 animate-pulse">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="h-80 rounded-2xl bg-muted/30 border border-border/60 flex flex-col p-4 space-y-3"
+                    >
+                      <div className="h-5 w-28 rounded-md bg-muted/70" />
+                      <div className="h-24 rounded-xl bg-muted/50 border border-border/40" />
+                      <div className="h-24 rounded-xl bg-muted/50 border border-border/40" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
+                {filtered.length === 0 && view !== "kanban" && (
+                  <Card className="p-12 text-center rounded-2xl border border-border/80 bg-card shadow-2xs">
+                    <Inbox className="mx-auto h-10 w-10 text-muted-foreground/40" />
+                    <h3 className="mt-3 text-sm font-semibold text-foreground">
+                      Nenhum projeto encontrado
+                    </h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Nenhum projeto corresponde aos critérios de busca e filtros selecionados.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResetFilters}
+                      className="mt-3 text-xs"
+                    >
+                      Limpar todos os filtros
+                    </Button>
+                  </Card>
+                )}
+
+                {view === "kanban" && (
+                  <>
+                    <div className="md:hidden rounded-xl border border-border bg-secondary/40 p-4 text-xs text-muted-foreground flex items-start gap-3">
+                      <Smartphone className="h-4 w-4 mt-0.5 shrink-0 text-primary" />
+                      <span>
+                        O Kanban funciona melhor em telas maiores. Experimente a visão{" "}
+                        <button
+                          onClick={() => setView("cards")}
+                          className="font-semibold text-primary underline"
+                        >
+                          Cards
+                        </button>{" "}
+                        ou{" "}
+                        <button
+                          onClick={() => setView("table")}
+                          className="font-semibold text-primary underline"
+                        >
+                          Tabela
+                        </button>{" "}
+                        no celular.
+                      </span>
+                    </div>
+                    <div className="hidden md:block">
+                      <ProjetosKanbanView
+                        config={activeConfig}
+                        projetos={filtered}
+                        profileMap={profileMap}
+                        onOpen={setOpenId}
+                        onNovaTarefa={setTarefaProjeto}
+                        selectedIds={compareIds}
+                        onToggleSelect={toggleCompare}
+                        apenasComProjetos={kanbanApenasComProjetos}
+                        onApenasComProjetosChange={handleKanbanApenasComProjetosChange}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {view === "table" && filtered.length > 0 && (
+                  <ProjetosTableView
+                    config={activeConfig}
+                    projetos={filtered}
+                    profileMap={profileMap}
+                    onOpen={setOpenId}
+                    selectedIds={compareIds}
+                    onToggleSelect={toggleCompare}
+                  />
+                )}
+
+                {view === "cards" && filtered.length > 0 && (
+                  <ProjetosCardsView
+                    config={activeConfig}
+                    projetos={filtered}
+                    profileMap={profileMap}
+                    onOpen={setOpenId}
+                    selectedIds={compareIds}
+                    onToggleSelect={toggleCompare}
+                    onNovaTarefa={setTarefaProjeto}
+                  />
+                )}
+              </>
+            )}
+
+            {/* 5. BARRA FLUTUANTE EXECUTIVA DE COMPARAÇÃO & EDIÇÃO EM MASSA */}
+            {compareIds.length >= 1 && (
+              <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
+                <Card className="px-4 py-2.5 flex items-center gap-3 shadow-2xl border-primary/30 bg-background/95 backdrop-blur-md rounded-2xl border">
+                  <Badge
+                    variant="secondary"
+                    className="h-6 px-2 text-xs font-semibold bg-primary/10 text-primary border-primary/20"
+                  >
+                    {compareIds.length} selecionado{compareIds.length > 1 ? "s" : ""}
+                  </Badge>
+                  <div className="h-4 w-px bg-border/70" />
+                  <Button
+                    size="sm"
+                    disabled={compareIds.length < 2}
+                    onClick={() => setShowCompare(true)}
+                    className="h-8 text-xs gap-1.5 font-semibold"
+                  >
+                    <Scale className="h-3.5 w-3.5" />
+                    <span>Comparar</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowBulkEdit(true)}
+                    className="h-8 text-xs gap-1.5 border-border/80 font-semibold"
+                  >
+                    <Edit3 className="h-3.5 w-3.5" />
+                    <span>Editar em massa</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={clearCompare}
+                    className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                    <span>Limpar</span>
+                  </Button>
+                </Card>
+              </div>
+            )}
+
+            {/* Modais de Ação */}
+            <CompararTargets
+              open={showCompare}
+              onOpenChange={setShowCompare}
+              projetos={filtered.filter((p) => compareIds.includes(p.id))}
+              profilesById={profileMap}
+              config={activeConfig}
+            />
+            <EditarEmMassa
+              open={showBulkEdit}
+              onOpenChange={setShowBulkEdit}
+              ids={compareIds}
+              profiles={profiles}
+              config={activeConfig}
+              onApplied={() => {
+                qc.invalidateQueries({ queryKey: [config.queryKey] });
+                clearCompare();
+              }}
+            />
           </>
         )}
-        {view === "table" && filtered.length > 0 && (
-          <TableView
-            config={activeConfig}
-            projetos={filtered}
-            profileMap={profileMap}
-            onOpen={setOpenId}
-            selectedIds={compareIds}
-            onToggleSelect={toggleCompare}
-          />
-        )}
-        {view === "cards" && filtered.length > 0 && (
-          <CardsView
-            config={activeConfig}
-            projetos={filtered}
-            profileMap={profileMap}
-            onOpen={setOpenId}
-            selectedIds={compareIds}
-            onToggleSelect={toggleCompare}
-            onNovaTarefa={setTarefaProjeto}
-          />
-        )}
-        {compareIds.length >= 1 && (
-          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
-            <Card className="px-4 py-2 flex items-center gap-3 shadow-lg border-border">
-              <span className="text-sm font-medium">
-                {compareIds.length} selecionado{compareIds.length > 1 ? "s" : ""}
-              </span>
-              <Button
-                size="sm"
-                disabled={compareIds.length < 2}
-                onClick={() => setShowCompare(true)}
-              >
-                Comparar
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setShowBulkEdit(true)}
-              >
-                Editar em massa
-              </Button>
-              <Button size="sm" variant="ghost" onClick={clearCompare}>
-                Limpar
-              </Button>
-            </Card>
-          </div>
-        )}
-        <CompararTargets
-          open={showCompare}
-          onOpenChange={setShowCompare}
-          projetos={filtered.filter((p) => compareIds.includes(p.id))}
-          profilesById={profileMap}
-          config={activeConfig}
-        />
-        <EditarEmMassa
-          open={showBulkEdit}
-          onOpenChange={setShowBulkEdit}
-          ids={compareIds}
-          profiles={profiles}
-          config={activeConfig}
-          onApplied={() => {
-            qc.invalidateQueries({ queryKey: [config.queryKey] });
-            clearCompare();
-          }}
-        />
-        </>
-        )}
 
-
-
+        {/* Detalhes do Projeto (Drawer / Sheet) */}
         <ProjectSheet
           config={activeConfig}
           projectId={openId}
@@ -579,6 +634,8 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
             setInitialSheetTab(null);
           }}
         />
+
+        {/* Modal de Novo Projeto */}
         <NewProjectDialog
           config={activeConfig}
           open={showNew}
@@ -586,6 +643,8 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
           profiles={profiles}
           onCreated={(id) => setOpenId(id)}
         />
+
+        {/* Modal de Criação Rápida de Tarefa Vinculada */}
         <NovaTarefaDialog
           open={tarefaProjeto !== null}
           onOpenChange={(o) => !o && setTarefaProjeto(null)}
@@ -602,6 +661,8 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
             qc.invalidateQueries({ queryKey: [config.queryKey] });
           }}
         />
+
+        {/* Modal de Gerenciamento de Estágios do Kanban */}
         <GerenciarEstagiosDialog
           open={showEstagiosModal}
           onOpenChange={setShowEstagiosModal}
@@ -614,945 +675,5 @@ export function ProjetosWorkspace({ config }: { config: ProjetoConfig }) {
         />
       </div>
     </TooltipProvider>
-  );
-}
-
-function FilterSelect({
-  value,
-  onChange,
-  placeholder,
-  options,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  options: Array<{ value: string; label: string }>;
-}) {
-  return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className="w-40 h-9">
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">Todos — {placeholder}</SelectItem>
-        {options.map((o) => (
-          <SelectItem key={o.value} value={o.value}>
-            {o.label}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
-// ---------- KANBAN ----------
-function KanbanView({
-  config,
-  projetos,
-  profileMap,
-  onOpen,
-  onNovaTarefa,
-}: {
-  config: ProjetoConfig;
-  projetos: Projeto[];
-  profileMap: Map<string, Profile>;
-  onOpen: (id: string) => void;
-  onNovaTarefa?: (p: Projeto) => void;
-}) {
-  const qc = useQueryClient();
-  const updateFn = useServerFn(updateProjeto);
-  const moveMut = useMutation({
-    mutationFn: ({ id, estagio }: { id: string; estagio: string }) =>
-      updateFn({ data: { id, patch: { estagio } } }),
-    onMutate: async ({ id, estagio }) => {
-      await qc.cancelQueries({ queryKey: [config.queryKey] });
-      const prev = qc.getQueryData([config.queryKey]) as
-        | { projetos: Projeto[] }
-        | undefined;
-      if (prev) {
-        qc.setQueryData([config.queryKey], {
-          projetos: prev.projetos.map((p) =>
-            p.id === id ? { ...p, estagio } : p,
-          ),
-        });
-      }
-      return { prev };
-    },
-    onError: (_e, _v, ctx) => {
-      if (ctx?.prev) qc.setQueryData([config.queryKey], ctx.prev);
-      toast.error("Falha ao mover");
-    },
-    onSettled: () => qc.invalidateQueries({ queryKey: [config.queryKey] }),
-  });
-
-  const byStage = useMemo(() => {
-    const map: Record<string, Projeto[]> = {};
-    for (const s of config.estagios) map[s.key] = [];
-    for (const p of projetos) {
-      if (map[p.estagio]) map[p.estagio].push(p);
-    }
-    return map;
-  }, [projetos, config.estagios]);
-
-  const topRef = useRef<HTMLDivElement>(null);
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const [scrollWidth, setScrollWidth] = useState(0);
-  const syncing = useRef<"top" | "body" | null>(null);
-
-  useEffect(() => {
-    const measure = () => setScrollWidth(innerRef.current?.scrollWidth ?? 0);
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [projetos, config.estagios]);
-
-  const onTopScroll = () => {
-    if (syncing.current === "body") return (syncing.current = null), undefined;
-    syncing.current = "top";
-    if (bodyRef.current && topRef.current)
-      bodyRef.current.scrollLeft = topRef.current.scrollLeft;
-    return undefined;
-  };
-  const onBodyScroll = () => {
-    if (syncing.current === "top") return (syncing.current = null), undefined;
-    syncing.current = "body";
-    if (topRef.current && bodyRef.current)
-      topRef.current.scrollLeft = bodyRef.current.scrollLeft;
-    return undefined;
-  };
-
-  return (
-    <div>
-      <div
-        ref={topRef}
-        onScroll={onTopScroll}
-        className="overflow-x-auto overflow-y-hidden mb-2 rounded-full bg-muted/40"
-        style={{ height: 12 }}
-      >
-        <div style={{ width: scrollWidth, height: 1 }} />
-      </div>
-      <div ref={bodyRef} onScroll={onBodyScroll} className="overflow-x-auto pb-4">
-      <div ref={innerRef} className="flex gap-3 min-w-max">
-        {config.estagios.map((s) => {
-          const items = byStage[s.key] ?? [];
-          const sum = items.reduce(
-            (acc, p) => acc + Number(p.valor_estimado ?? 0),
-            0,
-          );
-          return (
-            <div
-              key={s.key}
-              className="w-72 shrink-0 bg-muted/25 border border-border/70 rounded-xl p-2.5 flex flex-col min-h-105"
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                const id = e.dataTransfer.getData("text/projeto-id");
-                const from = e.dataTransfer.getData("text/projeto-estagio");
-                if (id && from !== s.key) {
-                  moveMut.mutate({ id, estagio: s.key });
-                }
-              }}
-            >
-              <div className="px-1.5 py-1 mb-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-xs uppercase tracking-wider text-muted-foreground">
-                    {s.label}
-                  </span>
-                  <Badge
-                    variant="outline"
-                    className="text-[11px] font-mono font-medium h-5 px-1.5 border-border/80 bg-background/70"
-                  >
-                    {items.length}
-                  </Badge>
-                </div>
-                <div className="text-xs font-mono font-medium text-foreground/80 mt-1">
-                  {formatBRL(sum)}
-                </div>
-                <div className="h-px w-full bg-border/60 mt-2" />
-              </div>
-
-              <div className="space-y-2 flex-1">
-                {items.map((p) => (
-                  <KanbanCard
-                    key={p.id}
-                    projeto={p}
-                    profile={
-                      p.responsavel_id
-                        ? profileMap.get(p.responsavel_id)
-                        : undefined
-                    }
-                    onOpen={() => onOpen(p.id)}
-                    onNovaTarefa={
-                      onNovaTarefa ? () => onNovaTarefa(p) : undefined
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      </div>
-    </div>
-  );
-}
-
-function KanbanCard({
-  projeto,
-  profile,
-  onOpen,
-  onNovaTarefa,
-}: {
-  projeto: Projeto;
-  profile?: Profile;
-  onOpen: () => void;
-  onNovaTarefa?: () => void;
-}) {
-  const h = healthFor(projeto);
-  const canQuickTask =
-    projeto.tipo === "novos_negocios" ||
-    ESTAGIOS_MA_TAREFAS_RAPIDAS.has(projeto.estagio);
-
-  return (
-    <Card
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.setData("text/projeto-id", projeto.id);
-        e.dataTransfer.setData("text/projeto-estagio", projeto.estagio);
-      }}
-      onClick={onOpen}
-      className="group relative p-3 cursor-pointer bg-card hover:bg-accent/20 border border-border/80 hover:border-primary/50 rounded-lg shadow-2xs hover:shadow-xs transition-all duration-150"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <div className="font-semibold text-sm leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">
-            {projeto.nome}
-          </div>
-          {projeto.tipo === "novos_negocios" && (
-            <Badge
-              variant="outline"
-              className="mt-1 text-[9px] py-0 px-1.5 leading-tight font-medium"
-            >
-              {STATUS_LABEL[projeto.status] ?? projeto.status}
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
-          {projeto.tipo === "ma" &&
-            projeto.percentual_orizon != null &&
-            Number(projeto.percentual_orizon) !== 100 && (
-              <Badge
-                variant="outline"
-                className="text-[9px] py-0 px-1.5 leading-tight bg-gold/10 text-gold-foreground border-gold/30 font-medium"
-              >
-                {formatPercentOrizon(projeto.percentual_orizon)} Orizon
-              </Badge>
-            )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div
-                className={`h-2.5 w-2.5 rounded-full ring-2 ring-background ${HEALTH_BG[h]}`}
-              />
-            </TooltipTrigger>
-            <TooltipContent>{HEALTH_LABEL[h]}</TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
-
-      {/* Badges de Setor e Subcategoria */}
-      <div className="mt-2 flex flex-wrap gap-1 items-center">
-        {projeto.subcategoria && (
-          <Badge
-            variant="secondary"
-            className="text-[10px] py-0 px-1.5 bg-primary/10 text-primary border-primary/20 font-medium"
-          >
-            {SUBCATEGORIA_LABEL[projeto.subcategoria] ?? projeto.subcategoria}
-          </Badge>
-        )}
-        {projeto.setor && (
-          <Badge variant="outline" className="text-[10px] py-0 px-1.5 font-medium border-border/80 text-muted-foreground">
-            {projeto.setor}
-          </Badge>
-        )}
-      </div>
-
-      {/* Métrica Financeira de Destaque */}
-      <div className="mt-2.5 flex items-baseline justify-between gap-2">
-        <div className="text-sm font-bold tracking-tight text-foreground font-mono">
-          {formatBRL(projeto.valor_estimado)}
-        </div>
-        {projeto.tipo === "ma" && projeto.volume_ton_dia != null && (
-          <div className="text-xs text-muted-foreground font-mono">
-            {formatTonDia(projeto.volume_ton_dia)}
-          </div>
-        )}
-      </div>
-
-      {/* Rodapé: Responsável, Tarefa Rápida e Data */}
-      <div className="mt-2.5 pt-2 border-t border-border/50 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          {profile ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Avatar className="h-5.5 w-5.5 border border-border/60">
-                  <AvatarFallback className="text-[9px] font-semibold" style={avatarBgStyle(profile.nome_completo)}>
-                    {initials(profile.nome_completo)}
-                  </AvatarFallback>
-                </Avatar>
-              </TooltipTrigger>
-              <TooltipContent>{profile.nome_completo}</TooltipContent>
-            </Tooltip>
-          ) : (
-            <span className="text-xs text-muted-foreground">—</span>
-          )}
-          {canQuickTask && onNovaTarefa && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-5.5 px-1.5 text-[11px] text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onNovaTarefa();
-                  }}
-                >
-                  <Plus className="h-3 w-3 mr-0.5" />
-                  Tarefa
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Criar tarefa para este projeto</TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-        <span className="text-[11px] text-muted-foreground font-medium font-mono">
-          {formatMonthYear(projeto.data_fechamento_prevista)}
-        </span>
-      </div>
-    </Card>
-  );
-}
-
-// ---------- TABLE ----------
-type SortKey =
-  | "nome"
-  | "setor"
-  | "estagio"
-  | "valor_estimado"
-  | "volume_ton_dia"
-  | "percentual_orizon"
-  | "valor_transacao_mm"
-  | "ebitda_2025"
-  | "sinergias_estimadas"
-  | "capex_estimado"
-  | "ebitda_alvo"
-  | "multiplo_ev_ebitda"
-  | "tir_estimada"
-  | "payback_anos"
-  | "data_fechamento_prevista"
-  | "status";
-
-function TableView({
-  config,
-  projetos,
-  profileMap,
-  onOpen,
-  selectedIds,
-  onToggleSelect,
-}: {
-  config: ProjetoConfig;
-  projetos: Projeto[];
-  profileMap: Map<string, Profile>;
-  onOpen: (id: string) => void;
-  selectedIds: string[];
-  onToggleSelect: (id: string) => void;
-}) {
-  const [sortKey, setSortKey] = useState<SortKey>("data_fechamento_prevista");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [page, setPage] = useState(0);
-  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const showMaCols = config.tipo === "ma";
-  const [colVolume, setColVolume] = useState(true);
-  const [colOrizon, setColOrizon] = useState(true);
-  const [colTransacao, setColTransacao] = useState(true);
-  const [colEbitda2025, setColEbitda2025] = useState(true);
-  const [colSinergias, setColSinergias] = useState(false);
-  const [colCapex, setColCapex] = useState(false);
-  const pageSize = 20;
-
-  const sorted = useMemo(() => {
-    const arr = [...projetos];
-    arr.sort((a, b) => {
-      const aRaw = a[sortKey];
-      const bRaw = b[sortKey];
-      const aEmpty = aRaw === null || aRaw === undefined || aRaw === "";
-      const bEmpty = bRaw === null || bRaw === undefined || bRaw === "";
-
-      // Valores nulos/vazios sempre no final (nulls last)
-      if (aEmpty && !bEmpty) return 1;
-      if (!aEmpty && bEmpty) return -1;
-      if (aEmpty && bEmpty) return 0;
-
-      const av = aRaw as string | number;
-      const bv = bRaw as string | number;
-      if (av < bv) return sortDir === "asc" ? -1 : 1;
-      if (av > bv) return sortDir === "asc" ? 1 : -1;
-      return 0;
-    });
-    return arr;
-  }, [projetos, sortKey, sortDir]);
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
-  const pageItems = sorted.slice(page * pageSize, (page + 1) * pageSize);
-
-  const toggleSort = (k: SortKey) => {
-    if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else {
-      setSortKey(k);
-      setSortDir("asc");
-    }
-  };
-
-  const showSubcat = config.tipo === "novos_negocios";
-
-  const exportCsv = () => {
-    const maCols: Array<[boolean, string, (p: Projeto) => string]> = [
-      [showMaCols && colVolume, "Volume (ton/dia)", (p) => String(p.volume_ton_dia ?? "")],
-      [showMaCols && colOrizon, "% Orizon", (p) => String(p.percentual_orizon ?? "")],
-      [showMaCols && colTransacao, "Valor Transação (R$ MM)", (p) => String(p.valor_transacao_mm ?? "")],
-      [showMaCols && colEbitda2025, "EBITDA 2025 (R$ MM)", (p) => String(p.ebitda_2025 ?? "")],
-      [showMaCols && colSinergias, "Sinergias (R$)", (p) => String(p.sinergias_estimadas ?? "")],
-      [showMaCols && colCapex, "CAPEX Estimado (R$)", (p) => String(p.capex_estimado ?? "")],
-    ];
-    const header = [
-      "Nome",
-      "Contraparte",
-      "Setor",
-      ...(showSubcat ? ["Subcategoria"] : []),
-      "Estágio",
-      config.valorColLabel,
-      ...maCols.filter(([on]) => on).map(([, lbl]) => lbl),
-      ...config.extraColumns.map((c) => c.label),
-      "Responsável",
-      "Data prevista",
-      "Status",
-    ];
-    const rows = [
-      header,
-      ...sorted.map((p) => [
-        p.nome,
-        p.contraparte ?? "",
-        p.setor ?? "",
-        ...(showSubcat ? [SUBCATEGORIA_LABEL[p.subcategoria ?? ""] ?? p.subcategoria ?? ""] : []),
-        config.estagioLabels[p.estagio] ?? p.estagio,
-        String(p.valor_estimado ?? ""),
-        ...maCols.filter(([on]) => on).map(([, , fn]) => fn(p)),
-        ...config.extraColumns.map((c) =>
-          String((p[c.key] as number | null | undefined) ?? ""),
-        ),
-        p.responsavel_id
-          ? profileMap.get(p.responsavel_id)?.nome_completo ?? ""
-          : "",
-        p.data_fechamento_prevista ?? "",
-        STATUS_LABEL[p.status] ?? p.status,
-      ]),
-    ];
-    const csv = rows
-      .map((r) =>
-        r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","),
-      )
-      .join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${config.csvPrefix}-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const visibleMaCols =
-    (showMaCols
-      ? Number(colVolume) +
-        Number(colOrizon) +
-        Number(colTransacao) +
-        Number(colEbitda2025) +
-        Number(colSinergias) +
-        Number(colCapex)
-      : 0);
-  const colSpan =
-    6 + config.extraColumns.length + 4 + (showSubcat ? 1 : 0) + visibleMaCols;
-
-  return (
-    <Card>
-      <div className="flex items-center justify-between p-3 border-b">
-        <div className="text-sm text-muted-foreground">
-          {sorted.length} projetos
-          {selectedSet.size > 0 ? ` · ${selectedSet.size} selecionado(s)` : ""}
-        </div>
-        <div className="flex items-center gap-2">
-          {showMaCols && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Columns3 className="h-4 w-4 mr-1" />
-                  Colunas
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Colunas opcionais</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuCheckboxItem
-                  checked={colVolume}
-                  onCheckedChange={(v) => setColVolume(!!v)}
-                >
-                  Volume (ton/dia)
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={colOrizon}
-                  onCheckedChange={(v) => setColOrizon(!!v)}
-                >
-                  % Orizon
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={colTransacao}
-                  onCheckedChange={(v) => setColTransacao(!!v)}
-                >
-                  Valor Transação
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={colEbitda2025}
-                  onCheckedChange={(v) => setColEbitda2025(!!v)}
-                >
-                  EBITDA 2025
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={colSinergias}
-                  onCheckedChange={(v) => setColSinergias(!!v)}
-                >
-                  Sinergias Estimadas
-                </DropdownMenuCheckboxItem>
-                <DropdownMenuCheckboxItem
-                  checked={colCapex}
-                  onCheckedChange={(v) => setColCapex(!!v)}
-                >
-                  CAPEX Estimado
-                </DropdownMenuCheckboxItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          <Button variant="outline" size="sm" onClick={exportCsv}>
-            <DownloadIcon className="h-4 w-4 mr-1" />
-            Exportar CSV
-          </Button>
-        </div>
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-8" />
-
-            <SortHead k="nome" sk={sortKey} sd={sortDir} onSort={toggleSort}>
-              Nome
-            </SortHead>
-            <SortHead k="setor" sk={sortKey} sd={sortDir} onSort={toggleSort}>
-              Setor
-            </SortHead>
-            {showSubcat && <TableHead>Subcategoria</TableHead>}
-            <SortHead k="estagio" sk={sortKey} sd={sortDir} onSort={toggleSort}>
-              Estágio
-            </SortHead>
-            <SortHead
-              k="valor_estimado"
-              sk={sortKey}
-              sd={sortDir}
-              onSort={toggleSort}
-              className="text-right"
-            >
-              {config.valorColLabel}
-            </SortHead>
-            {showMaCols && colVolume && (
-              <SortHead k="volume_ton_dia" sk={sortKey} sd={sortDir} onSort={toggleSort} className="text-right">
-                Volume
-              </SortHead>
-            )}
-            {showMaCols && colOrizon && (
-              <SortHead k="percentual_orizon" sk={sortKey} sd={sortDir} onSort={toggleSort} className="text-right">
-                % Orizon
-              </SortHead>
-            )}
-            {showMaCols && colTransacao && (
-              <SortHead k="valor_transacao_mm" sk={sortKey} sd={sortDir} onSort={toggleSort} className="text-right">
-                Valor Transação
-              </SortHead>
-            )}
-            {showMaCols && colEbitda2025 && (
-              <SortHead k="ebitda_2025" sk={sortKey} sd={sortDir} onSort={toggleSort} className="text-right">
-                EBITDA 2025
-              </SortHead>
-            )}
-            {showMaCols && colSinergias && (
-              <SortHead k="sinergias_estimadas" sk={sortKey} sd={sortDir} onSort={toggleSort} className="text-right">
-                Sinergias
-              </SortHead>
-            )}
-            {showMaCols && colCapex && (
-              <SortHead k="capex_estimado" sk={sortKey} sd={sortDir} onSort={toggleSort} className="text-right">
-                CAPEX
-              </SortHead>
-            )}
-            {config.extraColumns.map((c) => (
-              <SortHead
-                key={c.key}
-                k={c.key as SortKey}
-                sk={sortKey}
-                sd={sortDir}
-                onSort={toggleSort}
-                className="text-right"
-              >
-                {c.label}
-              </SortHead>
-            ))}
-            <TableHead>Responsável</TableHead>
-            <SortHead
-              k="data_fechamento_prevista"
-              sk={sortKey}
-              sd={sortDir}
-              onSort={toggleSort}
-            >
-              Previsão
-            </SortHead>
-            <SortHead k="status" sk={sortKey} sd={sortDir} onSort={toggleSort}>
-              Status
-            </SortHead>
-            <TableHead>Saúde</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pageItems.map((p) => {
-            const resp = p.responsavel_id
-              ? profileMap.get(p.responsavel_id)
-              : undefined;
-            const h = healthFor(p);
-            return (
-              <TableRow
-                key={p.id}
-                className="cursor-pointer"
-                onClick={(e) => {
-                  if ((e.target as HTMLElement).closest("[data-no-row]")) return;
-                  onOpen(p.id);
-                }}
-              >
-                <TableCell data-no-row onClick={(e) => e.stopPropagation()}>
-                  <Checkbox
-                    checked={selectedSet.has(p.id)}
-                    onCheckedChange={() => onToggleSelect(p.id)}
-                    aria-label="Selecionar para comparar"
-                  />
-                </TableCell>
-                <TableCell className="font-medium">{p.nome}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {p.setor ?? "—"}
-                </TableCell>
-                {showSubcat && (
-                  <TableCell>
-                    {p.subcategoria ? (
-                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                        {SUBCATEGORIA_LABEL[p.subcategoria] ?? p.subcategoria}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                )}
-                <TableCell>
-                  <Badge variant="secondary">
-                    {config.estagioLabels[p.estagio] ?? p.estagio}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {formatBRLFull(p.valor_estimado)}
-                </TableCell>
-                {showMaCols && colVolume && (
-                  <TableCell className="text-right text-sm">
-                    {formatTonDia(p.volume_ton_dia) ?? <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                )}
-                {showMaCols && colOrizon && (
-                  <TableCell className="text-right text-sm">
-                    {formatPercentOrizon(p.percentual_orizon) ?? <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                )}
-                {showMaCols && colTransacao && (
-                  <TableCell className="text-right text-sm">
-                    {formatValorTransacaoMM(p.valor_transacao_mm) ?? <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                )}
-                {showMaCols && colEbitda2025 && (
-                  <TableCell className="text-right text-sm">
-                    {formatValorTransacaoMM(p.ebitda_2025) ?? <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                )}
-                {showMaCols && colSinergias && (
-                  <TableCell className="text-right text-sm">
-                    {p.sinergias_estimadas != null ? formatBRLFull(p.sinergias_estimadas) : <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                )}
-                {showMaCols && colCapex && (
-                  <TableCell className="text-right text-sm">
-                    {p.capex_estimado != null ? formatBRLFull(p.capex_estimado) : <span className="text-muted-foreground">—</span>}
-                  </TableCell>
-                )}
-                {config.extraColumns.map((c) => (
-                  <TableCell key={c.key} className="text-right">
-                    {formatExtra(
-                      p[c.key] as number | null | undefined,
-                      c.format,
-                    )}
-                  </TableCell>
-                ))}
-                <TableCell>
-                  {resp ? (
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-[10px]" style={avatarBgStyle(resp.nome_completo)}>
-                          {initials(resp.nome_completo)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{resp.nome_completo}</span>
-                    </div>
-                  ) : (
-                    "—"
-                  )}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {formatMonthYear(p.data_fechamento_prevista)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {STATUS_LABEL[p.status] ?? p.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div
-                    className={`h-2.5 w-2.5 rounded-full ${HEALTH_BG[h]}`}
-                  />
-                </TableCell>
-              </TableRow>
-            );
-          })}
-          {pageItems.length === 0 && (
-            <TableRow>
-              <TableCell
-                colSpan={colSpan}
-                className="text-center text-muted-foreground py-10"
-              >
-                Nenhum projeto encontrado.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      {totalPages > 1 && (
-        <div className="p-3 border-t">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page === 0}
-                  onClick={() => setPage((p) => Math.max(0, p - 1))}
-                >
-                  Anterior
-                </Button>
-              </PaginationItem>
-              <PaginationItem>
-                <span className="text-sm px-3">
-                  Página {page + 1} de {totalPages}
-                </span>
-              </PaginationItem>
-              <PaginationItem>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={page >= totalPages - 1}
-                  onClick={() =>
-                    setPage((p) => Math.min(totalPages - 1, p + 1))
-                  }
-                >
-                  Próxima
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function SortHead({
-  k,
-  sk,
-  sd,
-  onSort,
-  children,
-  className,
-}: {
-  k: SortKey;
-  sk: SortKey;
-  sd: "asc" | "desc";
-  onSort: (k: SortKey) => void;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <TableHead className={className}>
-      <button
-        onClick={() => onSort(k)}
-        className="inline-flex items-center gap-1 hover:text-foreground"
-      >
-        {children}
-        <ArrowUpDown
-          className={`h-3 w-3 ${sk === k ? "text-foreground" : "text-muted-foreground/40"}`}
-        />
-        {sk === k && <span className="text-xs">{sd === "asc" ? "↑" : "↓"}</span>}
-      </button>
-    </TableHead>
-  );
-}
-
-// ---------- CARDS ----------
-function CardsView({
-  config,
-  projetos,
-  profileMap,
-  onOpen,
-  selectedIds,
-  onToggleSelect,
-  onNovaTarefa,
-}: {
-  config: ProjetoConfig;
-  projetos: Projeto[];
-  profileMap: Map<string, Profile>;
-  onOpen: (id: string) => void;
-  selectedIds: string[];
-  onToggleSelect: (id: string) => void;
-  onNovaTarefa?: (p: Projeto) => void;
-}) {
-  if (projetos.length === 0) {
-    return (
-      <Card className="p-10 text-center text-muted-foreground">
-        Nenhum projeto encontrado.
-      </Card>
-    );
-  }
-  const selectedSet = new Set(selectedIds);
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-      {projetos.map((p) => {
-        const resp = p.responsavel_id
-          ? profileMap.get(p.responsavel_id)
-          : undefined;
-        const h = healthFor(p);
-        const canQuickTask =
-          p.tipo === "novos_negocios" ||
-          ESTAGIOS_MA_TAREFAS_RAPIDAS.has(p.estagio);
-        return (
-          <Card
-            key={p.id}
-            onClick={() => onOpen(p.id)}
-            className="relative p-4 pt-9 cursor-pointer hover:shadow-md transition-shadow flex flex-col gap-3"
-          >
-            <div
-              className="absolute top-2 right-2 z-10"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Checkbox
-                checked={selectedSet.has(p.id)}
-                onCheckedChange={() => onToggleSelect(p.id)}
-                aria-label="Selecionar para comparar"
-              />
-            </div>
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="font-semibold text-base truncate">
-                    {p.nome}
-                  </div>
-                  {p.tipo === "novos_negocios" && (
-                    <Badge variant="outline" className="shrink-0 text-[10px] py-0">
-                      {STATUS_LABEL[p.status] ?? p.status}
-                    </Badge>
-                  )}
-                </div>
-                <div className="text-xs text-muted-foreground truncate">
-                  {p.contraparte ?? "—"}
-                </div>
-              </div>
-              <div className={`h-2.5 w-2.5 rounded-full ${HEALTH_BG[h]} mt-1.5`} />
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {p.setor && <Badge variant="outline">{p.setor}</Badge>}
-              {p.subcategoria && (
-                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-                  {SUBCATEGORIA_LABEL[p.subcategoria] ?? p.subcategoria}
-                </Badge>
-              )}
-              <Badge variant="secondary">
-                {config.estagioLabels[p.estagio] ?? p.estagio}
-              </Badge>
-            </div>
-            <div className="text-2xl font-bold text-primary">
-              {formatBRL(p.valor_estimado)}
-            </div>
-            {p.tese && (
-              <p className="text-xs text-muted-foreground line-clamp-2">
-                {p.tese}
-              </p>
-            )}
-            <div className="flex items-center justify-between pt-2 border-t">
-              <div className="flex items-center gap-2">
-                {resp ? (
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-[10px]" style={avatarBgStyle(resp.nome_completo)}>
-                        {initials(resp.nome_completo)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-xs">{resp.nome_completo}</span>
-                  </div>
-                ) : (
-                  <span className="text-xs text-muted-foreground">—</span>
-                )}
-                {canQuickTask && onNovaTarefa && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onNovaTarefa(p);
-                        }}
-                      >
-                        <Plus className="h-3 w-3 mr-0.5" />
-                        Tarefa
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Criar tarefa para este projeto</TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-              <span className="text-xs text-muted-foreground font-medium">
-                {formatMonthYear(p.data_fechamento_prevista)}
-              </span>
-            </div>
-          </Card>
-        );
-      })}
-    </div>
   );
 }

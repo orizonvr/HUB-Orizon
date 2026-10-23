@@ -13,8 +13,11 @@ import {
   Download,
   ClipboardList,
   FileText,
+  Calendar,
+  Gavel,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -306,7 +309,7 @@ function ComiteDetailPage() {
 
   if (detailQ.isLoading || !comite) {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-4 p-6">
+      <div className="mx-auto w-full max-w-360 px-4 py-6 md:px-8 space-y-5">
         <Skeleton className="h-8 w-1/3" />
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-48 w-full" />
@@ -373,46 +376,95 @@ function ComiteDetailPage() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 p-6">
+    <div className="mx-auto w-full max-w-360 px-4 py-6 md:px-8 space-y-5">
+      {/* Botão de Retorno e Breadcrumb */}
       <div>
         <Button
           variant="ghost"
           size="sm"
-          className="mb-2 -ml-2"
+          className="h-8 text-xs text-muted-foreground hover:text-foreground gap-1.5 -ml-2 rounded-lg"
           onClick={() => navigate({ to: "/comites" })}
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Comitês
+          <ArrowLeft className="h-3.5 w-3.5" />
+          <span>Voltar para Comitês</span>
         </Button>
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight">
-                {comite.titulo}
-              </h1>
-              <Badge
-                variant="secondary"
-                className={`${meta.className} text-[10px]`}
-              >
-                {meta.label}
-              </Badge>
+      </div>
+
+      {/* ======================================================== */}
+      {/* 1. HERO BANNER EXECUTIVO DO COMITÊ (PADRÃO ORIZONVR)      */}
+      {/* ======================================================== */}
+      <div className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground px-5 py-4 sm:px-6 sm:py-5 shadow-xs border border-primary/20">
+        {/* Marca d'água circular oficial da Orizon */}
+        <div className="pointer-events-none absolute -right-6 top-1/2 -translate-y-1/2 opacity-[0.08] dark:opacity-[0.10] select-none">
+          <img
+            src="/brand/orizon-symbol.png"
+            alt=""
+            aria-hidden="true"
+            className="h-52 w-52 sm:h-60 sm:w-60 rounded-full object-cover filter contrast-125"
+          />
+        </div>
+
+        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          {/* Identidade Institucional & Título */}
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="flex h-12 w-12 sm:h-13 sm:w-13 shrink-0 items-center justify-center rounded-xl bg-white/12 border border-white/20 text-white shadow-xs">
+              <Gavel className="h-6 w-6" />
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {formatDataBR(comite.data)}
-            </p>
+            <div className="space-y-1 min-w-0">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
+                  {comite.titulo}
+                </h1>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "text-[10px] font-semibold px-2.5 py-0.5 rounded-full border bg-white/10 text-white border-white/20",
+                  )}
+                >
+                  <span className={cn(
+                    "h-1.5 w-1.5 rounded-full mr-1.5",
+                    comite.status === "realizado" ? "bg-emerald-300 animate-pulse" : comite.status === "preparacao" ? "bg-amber-300" : "bg-white/40"
+                  )} />
+                  {meta.label}
+                </Badge>
+              </div>
+              <p className="text-xs sm:text-sm text-white/80 font-normal flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-white/70" />
+                  {formatDataBR(comite.data)}
+                </span>
+                <span>•</span>
+                <span>
+                  {comite.pauta.length} {comite.pauta.length === 1 ? "projeto em pauta" : "projetos em pauta"}
+                </span>
+                {comite.criado_por_nome && (
+                  <>
+                    <span>•</span>
+                    <span>Criado por {comite.criado_por_nome}</span>
+                  </>
+                )}
+              </p>
+            </div>
           </div>
+
+          {/* Ações Rápidas Executivas */}
           {canEdit && mode === "view" && (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCancelOpen(true)}
+                className="h-9 text-xs font-semibold bg-white/10 hover:bg-white/20 text-white hover:text-white border border-white/20 hover:border-white/40 px-3.5 rounded-xl shadow-xs hover:shadow-sm transition-all cursor-pointer"
               >
                 Cancelar comitê
               </Button>
-              <Button size="sm" onClick={() => setMode("registro")}>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Realizar comitê
+              <Button
+                size="sm"
+                onClick={() => setMode("registro")}
+                className="h-9 text-xs font-bold bg-white text-primary hover:bg-white/90 px-4 gap-1.5 rounded-xl shadow-xs hover:shadow-sm hover:-translate-y-0.5 transition-all cursor-pointer"
+              >
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span>Realizar Comitê</span>
               </Button>
             </div>
           )}
@@ -420,44 +472,59 @@ function ComiteDetailPage() {
       </div>
 
       {!isPreparacao && (
-        <Card className="flex items-center gap-3 border-amber-400/50 bg-amber-50/40 p-4 text-sm dark:bg-amber-950/20">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
+        <Card className="flex items-center gap-3 border-amber-400/40 bg-amber-50/50 p-4 text-xs font-medium dark:bg-amber-950/20 rounded-xl text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <span>
-            Este comitê já foi {meta.label.toLowerCase()}. Pauta apenas em leitura.
+            Este comitê já foi {meta.label.toLowerCase()}. A pauta e as deliberações estão em modo de leitura e auditoria.
           </span>
         </Card>
       )}
 
-      <Card className="p-5">
-        <h2 className="text-sm font-semibold">Participantes</h2>
-        <div className="mt-3">
+      {/* Card de Participantes */}
+      <Card className="rounded-xl border border-border/80 bg-card p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h2 className="text-xs font-bold text-foreground uppercase tracking-wider">
+              Membros Participantes do Comitê ({comite.participantes.length})
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Alçadas convocadas com poder de voto e deliberação
+            </p>
+          </div>
           <AvatarStack
             items={comite.participantes.map((p) => ({
               id: p.id,
               nome: p.nome_completo,
               avatar_url: p.avatar_url,
             }))}
-            max={10}
+            max={12}
             size="md"
           />
         </div>
       </Card>
 
-      <Card className="p-5">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">
-            {mode === "registro" ? "Registrar decisões" : "Pauta"}
-          </h2>
+      <Card className="rounded-xl border border-border/80 bg-card p-5">
+        <div className="flex items-center justify-between pb-3 border-b border-border/60">
+          <div>
+            <h2 className="text-sm font-bold text-foreground">
+              {mode === "registro" ? "Registrar Decisões da Pauta" : "Projetos em Pauta"}
+            </h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {mode === "registro"
+                ? "Defina o parecer, estágio sugerido e condicionantes para cada projeto antes de concluir."
+                : "Ordem do dia e deliberações das teses de investimento."}
+            </p>
+          </div>
           {canEdit && mode === "view" && (
-            <Button size="sm" onClick={() => setAddOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Adicionar projeto
+            <Button size="sm" onClick={() => setAddOpen(true)} className="rounded-xl text-xs gap-1.5 h-8.5">
+              <Plus className="h-3.5 w-3.5" />
+              <span>Adicionar Projeto</span>
             </Button>
           )}
         </div>
 
         {comite.pauta.length === 0 ? (
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <p className="mt-6 text-center text-sm text-muted-foreground py-8">
             Nenhum projeto na pauta ainda.
           </p>
         ) : mode === "registro" && canEdit ? (
@@ -508,27 +575,32 @@ function ComiteDetailPage() {
       </Card>
 
       {!isPreparacao && comite.ata_consolidada && (
-        <Card className="p-5">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold">Ata consolidada</h2>
+        <Card className="rounded-xl border border-border/80 bg-card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-border/60">
+            <div>
+              <h2 className="text-sm font-bold text-foreground">Ata Consolidada da Sessão</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Registro formal de deliberações e condicionantes para auditoria
+              </p>
+            </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" onClick={copyAta}>
-                <Copy className="mr-2 h-4 w-4" />
-                Copiar ata
+              <Button variant="outline" size="sm" onClick={copyAta} className="h-8.5 text-xs rounded-xl gap-1.5">
+                <Copy className="h-3.5 w-3.5" />
+                <span>Copiar Ata</span>
               </Button>
-              <Button variant="outline" size="sm" onClick={downloadAta}>
-                <Download className="mr-2 h-4 w-4" />
-                Baixar .md
+              <Button variant="outline" size="sm" onClick={downloadAta} className="h-8.5 text-xs rounded-xl gap-1.5">
+                <Download className="h-3.5 w-3.5" />
+                <span>Baixar .md</span>
               </Button>
               {isRealizado && isPrivileged && hasCondicionantes && (
-                <Button size="sm" onClick={() => setFollowupOpen(true)}>
-                  <ClipboardList className="mr-2 h-4 w-4" />
-                  Gerar tarefas de condicionantes
+                <Button size="sm" onClick={() => setFollowupOpen(true)} className="h-8.5 text-xs rounded-xl gap-1.5 font-bold">
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  <span>Gerar Tarefas de Condicionantes</span>
                 </Button>
               )}
             </div>
           </div>
-          <pre className="mt-4 max-h-[480px] overflow-auto whitespace-pre-wrap rounded-md border bg-muted/40 p-4 font-mono text-xs">
+          <pre className="mt-4 max-h-120 overflow-auto whitespace-pre-wrap rounded-xl border border-border/70 bg-muted/40 p-4 font-mono text-xs leading-relaxed">
             {comite.ata_consolidada}
           </pre>
         </Card>
@@ -580,7 +652,7 @@ function ComiteDetailPage() {
           <Textarea
             value={ataDraft}
             onChange={(e) => setAtaDraft(e.target.value)}
-            className="min-h-[320px] font-mono text-xs"
+            className="min-h-80 font-mono text-xs"
           />
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConcluirOpen(false)}>
@@ -655,17 +727,17 @@ function PautaViewItem({
       item.estagio_sugerido
     : null;
   return (
-    <li className="flex items-start gap-3 rounded-md border border-border p-3">
-      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+    <li className="flex items-start gap-3.5 rounded-xl border border-border/80 bg-card p-3.5 transition-all hover:border-primary/40 hover:shadow-2xs">
+      <div className="flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
         {idx + 1}
       </div>
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{item.projeto_nome}</span>
-          <Badge variant="outline" className="text-[10px]">
+          <span className="font-bold text-foreground tracking-tight">{item.projeto_nome}</span>
+          <Badge variant="outline" className="text-[10px] font-semibold border-border/80">
             {TIPO_LABEL[item.projeto_tipo]}
           </Badge>
-          <Badge variant="secondary" className="text-[10px]">
+          <Badge variant="secondary" className="text-[10px] font-medium">
             {item.projeto_estagio}
           </Badge>
           {showDecisoes && (
@@ -692,7 +764,7 @@ function PautaViewItem({
               onValueChange={(v) => onRelator(v === "none" ? null : v)}
               disabled={!canEdit}
             >
-              <SelectTrigger className="h-8 w-[220px] text-xs">
+              <SelectTrigger className="h-8 w-55 text-xs">
                 <SelectValue placeholder="Sem relator" />
               </SelectTrigger>
               <SelectContent>
@@ -792,18 +864,18 @@ function PautaRegistroItem({ idx, item, pending, onPatch, onBriefing }: Registro
   const estagioLabels = estagioLabelsFor(item.projeto_tipo);
 
   return (
-    <li className="rounded-md border border-border p-4">
-      <div className="flex items-start gap-3">
-        <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+    <li className="rounded-xl border border-border/80 bg-card p-4 transition-all hover:border-primary/40 hover:shadow-2xs">
+      <div className="flex items-start gap-3.5">
+        <div className="flex h-6.5 w-6.5 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary border border-primary/20 text-xs font-bold">
           {idx + 1}
         </div>
         <div className="min-w-0 flex-1 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="font-medium">{item.projeto_nome}</span>
-            <Badge variant="outline" className="text-[10px]">
+            <span className="font-bold text-foreground tracking-tight">{item.projeto_nome}</span>
+            <Badge variant="outline" className="text-[10px] font-semibold border-border/80">
               {TIPO_LABEL[item.projeto_tipo]}
             </Badge>
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" className="text-[10px] font-medium">
               {item.projeto_estagio}
             </Badge>
             <button
@@ -875,7 +947,7 @@ function PautaRegistroItem({ idx, item, pending, onPatch, onBriefing }: Registro
                   onPatch({ justificativa: justificativa || null });
                 }
               }}
-              className="min-h-[72px] text-sm"
+              className="min-h-18 text-sm"
             />
           </div>
 
@@ -890,7 +962,7 @@ function PautaRegistroItem({ idx, item, pending, onPatch, onBriefing }: Registro
                 }
               }}
               placeholder="Uma condicionante por linha — viram tarefas depois."
-              className="min-h-[72px] text-sm"
+              className="min-h-18 text-sm"
             />
           </div>
         </div>
@@ -1118,7 +1190,7 @@ function FollowupsDialog({
             Nenhuma condicionante registrada.
           </p>
         ) : (
-          <div className="max-h-[480px] space-y-3 overflow-y-auto pr-1">
+          <div className="max-h-120 space-y-3 overflow-y-auto pr-1">
             {items.map((i) => (
               <div
                 key={i.uid}
